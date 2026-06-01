@@ -1,5 +1,5 @@
 # At least Ansible 2.12 is needed due to used features like 'argument_specs'
-ansible>=2.12
+ansible>=13.7.0
 
 ## ansible/yaml lint
 ansible-lint~=24.5.0
