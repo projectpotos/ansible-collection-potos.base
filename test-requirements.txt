@@ -1,0 +1,15 @@
+# At least Ansible 2.12 is needed due to used features like 'argument_specs'
+ansible>=2.12
+
+## ansible/yaml lint
+ansible-lint~=24.5.0
+yamllint~=1.35.1
+
+## molecule tests
+molecule~=24.2.1
+molecule-plugins~=23.5.3
+docker~=7.0.0
+
+# pytest
+pytest-ansible
+pytest-xdist

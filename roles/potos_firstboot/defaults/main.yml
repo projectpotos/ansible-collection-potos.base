@@ -1,0 +1,41 @@
+---
+# Custom commands to execute before the first boot role
+potos_firstboot_precommands: []
+
+# Custom commands to execute after the first boot role
+potos_firstboot_postcommands: []
+
+# Script to determine hostname
+potos_firstboot_hostname_script: ''
+
+# If user can select his keyboard layout
+potos_firstboot_ask_keyboardlayout: true
+
+# Sentence to ask user to select a keyboard layout
+potos_firstboot_ask_select_keyboardlayout: 'Please select your keyboard layout'
+
+# Ask Hostname in an extra popup
+potos_firstboot_ask_hostname: true
+
+## Local User and Group Handling
+# Ask to create a new local user
+potos_firstboot_local_user_add: true
+# List of local groups to create
+potos_firstboot_local_groups: []
+# List of local groups the local user should be added to
+# "sudo" will give full root access via sudo
+potos_firstboot_local_user_groups:
+  - sudo
+# Define its shell, we recommend /bin/bash
+potos_firstboot_local_user_add_shell: /bin/bash
+
+## .iso Image Admin User Handling
+# Delete admin user from .iso install file.
+# Do not delete this admin user, if above no new sudo permissioned user is created ;-)
+potos_firstboot_initial_user_delete_admin_iso_user: true
+
+# Ask change disk encryption password
+potos_firstboot_ask_change_disk_enc_pw: true
+
+# Don't change unless you are not using the Potos playbooks
+potos_firstboot_client_name: "{{ potos_plays_client_short_name | default('potos') }}"

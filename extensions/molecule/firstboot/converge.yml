@@ -1,0 +1,12 @@
+---
+
+- name: Converge
+  hosts: all
+  gather_facts: yes
+  vars:
+    runtype: 'setup'
+    potos_new_luks_password: 'dummylukspassword'
+  tasks:
+    - name: run role
+      ansible.builtin.include_role:
+        name: 'ansible-role-potos_firstboot'

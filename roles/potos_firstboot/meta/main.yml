@@ -1,0 +1,16 @@
+---
+galaxy_info:
+  author: Project Potos
+  description: Role to run handle base questions in Potos Linux Clients.
+  company: potos
+  license: GPL-3.0-only
+  min_ansible_version: "2.14"
+  platforms:
+    - name: Fedora
+      versions:
+        - all
+  galaxy_tags:
+    - potos
+    - base
+
+dependencies: []

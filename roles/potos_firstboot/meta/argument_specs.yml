@@ -1,0 +1,79 @@
+---
+
+argument_specs:
+  main:
+    short_description: Role to run handle base questions in Potos Linux Clients.
+    options:
+      potos_firstboot_precommands:
+        description:
+          - Custom commands to execute before the first boot role
+        type: list
+        elements: str
+        required: false
+        default: []
+      potos_firstboot_postcommands:
+        description:
+          - Custom commands to execute after the first boot role
+        type: list
+        elements: str
+        required: false
+        default: []
+      potos_firstboot_hostname_script:
+        description:
+          - Script to be executed to determine hostname
+        type: str
+        required: false
+        default: ''
+      potos_firstboot_ask_hostname:
+        description:
+          - If the user should be asked for a hostname when not set before
+        type: bool
+        required: false
+        default: true
+      potos_firstboot_local_user_add:
+        description:
+          - Ask to create a new local user
+        type: bool
+        required: false
+        default: true
+      potos_firstboot_local_groups:
+        description:
+          - Local groups to create
+        type: list
+        elements: str
+        required: false
+        default: []
+      potos_firstboot_local_user_groups:
+        description:
+          - Local groups the local user is added to
+        type: list
+        elements: str
+        required: false
+        default:
+          - sudo
+      potos_firstboot_local_user_add_shell:
+        description:
+          - Define the new user shell, we recommend /bin/bash
+        type: str
+        required: false
+        default: /bin/bash
+      potos_firstboot_initial_user_delete_admin_iso_user:
+        description:
+          - Delete admin user from .iso install file.
+          - Do not delete this admin user, if above no new sudo permissioned user is created ;-)
+        type: bool
+        required: false
+        default: true
+      potos_firstboot_ask_change_disk_enc_pw:
+        description:
+          - Ask change disk encryption password (if disk encryption is enabled in iso)
+        type: bool
+        required: false
+        default: true
+      potos_firstboot_client_name:
+        description:
+          - Clientname to be used
+          - Do NOT change if using with the Potos Playbook!
+        type: str
+        required: false
+        default: "{{ potos_plays_client_short_name | default('potos') }}"
