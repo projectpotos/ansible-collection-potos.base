@@ -1,0 +1,123 @@
+---
+
+- name: Potos system configuration
+  hosts: localhost
+  connection: local
+  become: True
+  gather_facts: True
+  ignore_errors: True
+
+  vars:
+    # define default run type
+    potos_runtype: 'daily'
+
+  pre_tasks:
+    - name: read specs repo configuration
+      ansible.builtin.include_vars:
+        file: '/etc/potos/specs_repo.yml'
+        name: potos_specs
+      tags:
+        - always
+
+    - name: define client_name
+      ansible.builtin.set_fact:
+        potos_plays_client_full_name: "{{ potos_specs.client_name }}"
+        potos_plays_client_name: "{{ potos_specs.client_short_name | default(potos_specs.client_name.split() | first) | lower }}"
+        potos_plays_client_short_name: "{{ potos_specs.client_short_name | default(potos_specs.client_name.split() | first) | lower }}"
+
+    # To make sure that this task always executes, it is tagged with the special
+    # tag "always". Therefore do not remove this tag!
+    - name: template requirements.yml file
+      ansible.builtin.template:
+        src: 'requirements.yml.j2'
+        dest: '{{ playbook_dir }}/requirements.yml'
+        owner: root
+        group: root
+        mode: 0644
+      tags:
+        - always
+
+    # Load roles from requirements file
+    - name: load roles from requirements file
+      ansible.builtin.set_fact:
+        potos_plays_roles: "{{ lookup('file', 'requirements.yml') | from_yaml }}"
+      tags:
+        - always
+
+    - name: remove old files  # args[module]
+      ansible.builtin.file:
+        state: "{{ item }}"
+        path: "roles/"
+        owner: 0
+        group: 0
+        mode: '0755'
+      loop:
+        - absent
+        - directory
+      changed_when: false
+
+    # Clone roles defined to use git via the git module, allowing us more configuration (especially with ssh) than pure ansible-galaxy
+    - name: load roles via git
+      ansible.builtin.git:
+        accept_newhostkey: true
+        clone: true
+        dest: '{{ "roles/" + item.name | default(item.src.split(".git")[0].split("/")[-1]) }}'
+        force: true
+        key_file: "{{ item.key_file | default(omit) }}"
+        repo: '{{ item.src | regex_replace("^git\+", "") }}'
+        single_branch: true
+        ssh_opts: "{{ item.ssh_opts | default(omit) }}"
+        version: "{{ item.version | default(omit) }}"
+      loop: "{{ potos_plays_roles }}"
+      when:
+        - item.src is defined
+        - (item.src | regex_search('^git\+')) or (item.scm is defined and item.scm == 'git')
+      tags:
+        - always
+
+    # Clone remaining roles via ansible-galaxy
+    - name: clone remaining role via ansible-galaxy
+      tags:
+        - always
+      block:
+        - name: get roles to be loaded via ansible-galaxy
+          ansible.builtin.set_fact:
+            potos_roles_galaxy: "{{ potos_roles_galaxy | default([]) + [item] }}"
+          loop: "{{ potos_plays_roles }}"
+          when:
+            - (item.src is defined and not item.src | regex_search('^git\+')) or (item.scm is defined and item.scm != 'git')
+
+        - name: get temp file to store requirements for roles to be loaded with ansible-galaxy
+          ansible.builtin.tempfile:
+            state: file
+            suffix: '.yml'
+          register: potos_plays_galaxy_temp
+          when: potos_roles_galaxy is defined
+
+        - name: write temp file with roles to be loaded from ansible-galaxy
+          ansible.builtin.copy:
+            content: "{{ potos_roles_galaxy | default([]) | to_yaml }}"
+            dest: "{{ potos_plays_galaxy_temp.path }}"
+            mode: 0644
+            owner: root
+            group: root
+          when: potos_roles_galaxy is defined
+
+        - name: load roles from ansible-galaxy
+          ansible.builtin.command:
+            cmd: "ansible-galaxy install -f -r {{ potos_plays_galaxy_temp.path }} -p roles/"
+          changed_when: false
+          when:
+            - potos_roles_galaxy is defined
+            - potos_roles_galaxy | length > 0
+
+  tasks:
+    - name: run all the required roles
+      ansible.builtin.include_role:
+        name: '{{ potos_playbook_role }}'
+        apply:
+          tags:
+            - always
+      loop: '{{ lookup("file", "requirements.yml") | from_yaml | map(attribute="name") | list }}'
+      loop_control:
+        loop_var: 'potos_playbook_role'
