@@ -5,9 +5,6 @@ potos_firstboot_precommands: []
 # Custom commands to execute after the first boot role
 potos_firstboot_postcommands: []
 
-# Script to determine hostname
-potos_firstboot_hostname_script: ''
-
 # If user can select his keyboard layout
 potos_firstboot_ask_keyboardlayout: true
 
@@ -25,17 +22,62 @@ potos_firstboot_local_groups: []
 # List of local groups the local user should be added to
 # "sudo" will give full root access via sudo
 potos_firstboot_local_user_groups:
-  - sudo
+  - wheel
 # Define its shell, we recommend /bin/bash
 potos_firstboot_local_user_add_shell: /bin/bash
 
 ## .iso Image Admin User Handling
-# Delete admin user from .iso install file.
-# Do not delete this admin user, if above no new sudo permissioned user is created ;-)
+# Delete the initial admin user shipped in the .iso once a real user has been
+# created interactively. Do not enable this if no replacement user is created.
 potos_firstboot_initial_user_delete_admin_iso_user: true
 
 # Ask change disk encryption password
 potos_firstboot_ask_change_disk_enc_pw: true
 
-# Don't change unless you are not using the Potos playbooks
+# Client name (only used to label dialogs)
 potos_firstboot_client_name: "{{ potos_plays_client_short_name | default('potos') }}"
+
+## Specs-repo credentials. Every source produces ONE secret string (a token)
+## used by the periodic potos run to clone the specs repository.
+# Source: none | prompt | openbao | script
+potos_firstboot_credentials_source: none
+
+# File the resolved token is written to (mode 0400, owned by root).
+potos_firstboot_credentials_token_file: /etc/potos/specs_token
+
+# Openbao (HashiCorp Vault fork) configuration. Only used when
+# potos_firstboot_credentials_source == 'openbao'. Uses the OIDC device flow
+# (the user authenticates in a browser on another device), then reads a
+# single field from the configured KV v2 path and uses it as the token.
+potos_firstboot_credentials_openbao:
+  url: ''
+  role: ''
+  mount: oidc
+  # KV v2 path to the secret holding the token, e.g. 'kv/potos/specs'.
+  secret_path: ''
+  # Field inside the secret whose value is the token.
+  field: token
+
+# Path to a user-defined credential script. Invoked with no arguments and must
+# print the token to stdout. Bundled into the ISO by the builder and installed
+# to /usr/libexec/potos/credentials.sh.
+potos_firstboot_credentials_script: /usr/libexec/potos/credentials.sh
+
+## Extra roles to run after the default firstboot tasks. Each entry is a dict
+## understood by ansible-galaxy: { name, src?, scm?, version? }. Roles are
+## installed (galaxy or git) into a temp roles directory and then run with
+## include_role.
+potos_firstboot_extra_roles: []
+
+## Marker file written when firstboot has completed successfully. The autostart
+## wrapper consults this to know whether to run again.
+potos_firstboot_done_marker: /var/lib/potos/firstboot.done
+
+## Path of the autostart .desktop file installed by the ISO; firstboot removes
+## it on success.
+potos_firstboot_autostart_file: /etc/xdg/autostart/potos-firstboot.desktop
+
+## When true, after a successful firstboot, enable+start the potos.timer (via
+## the potos.base.basics role). The collection's firstboot playbook handles
+## this; you only need to disable it for tests.
+potos_firstboot_activate_timer: true

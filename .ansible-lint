@@ -1,10 +1,11 @@
 ---
 
 skip_list:
-  - name[casing]
-  - risky-shell-pipe
+- name[casing]
+- risky-shell-pipe
+- var-naming[no-role-prefix]
 
 warn_list:
-  - command-instead-of-shell  # Use shell only when shell functionality is required.
-  - literal-compare  # Don't compare to literal True/False.
-  - no-changed-when  # Commands should not change things if nothing needs doing.
+- command-instead-of-shell # Use shell only when shell functionality is required.
+- literal-compare          # Don't compare to literal True/False.
+- no-changed-when          # Commands should not change things if nothing needs doing.

@@ -1,0 +1,16 @@
+---
+galaxy_info:
+  author: Project Potos
+  description: Basic functionality of Potos Linux Clients - periodic ansible run timers, wrapper script, virtualenv, log rotation.
+  company: Project Potos
+  license: GPL-3.0-only
+  min_ansible_version: "2.14"
+  platforms:
+    - name: Fedora
+      versions:
+        - all
+  galaxy_tags:
+    - potos
+    - base
+
+dependencies: []

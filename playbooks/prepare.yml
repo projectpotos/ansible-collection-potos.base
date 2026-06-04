@@ -1,118 +1,93 @@
 ---
-
-- name: Potos preparation playbook
+- name: Potos periodic run - stage 1 (prepare / specs sync)
   hosts: localhost
   connection: local
-  become: True
-  gather_facts: False
-  ignore_errors: False
+  become: true
+  gather_facts: true
+
+  vars:
+    # Default runtype when invoked outside a timer
+    potos_runtype: daily
 
   pre_tasks:
-    - name: read specs repo configuration
-      ansible.builtin.include_vars:
-        file: '/etc/potos/specs_repo.yml'
-        name: potos_specs
-    - name: Get specs repo for {{ potos_specs.client_name }}
-      ansible.builtin.git:
-        repo: '{{ potos_specs.git_url }}/{{ potos_specs.git_repo }}.git'
-        dest: '{{ playbook_dir }}/specs'
-        version: '{{ potos_specs.git_branch }}'
-        key_file: '{% if potos_specs.git_ssh_key is defined and potos_specs.git_ssh_key %}/etc/potos/specs_key{% else %}{{ omit }}{% endif %}'
-        accept_newhostkey: true
-        single_branch: true
-      changed_when: False
-      failed_when: False
+    - name: Apply the base role
+      ansible.builtin.import_role:
+        name: potos.base.basics
+
   tasks:
-    - name: Check if specs exists
+    - name: Abort gracefully when no specs repo is configured
+      ansible.builtin.meta: end_play
+      when: potos_basics_specs_url | length == 0
+
+    - name: Read specs-repo token if present
+      ansible.builtin.slurp:
+        src: "{{ potos_basics_specs_token_file }}"
+      register: potos_basics_specs_token
+      when: potos_basics_specs_token_file is file
+      no_log: true
+
+    - name: Build authenticated specs URL
+      ansible.builtin.set_fact:
+        potos_basics_specs_effective_url: >-
+          {%- if potos_basics_specs_token.content is defined and
+                 potos_basics_specs_url.startswith(('http://', 'https://')) -%}
+          {%- set _token = potos_basics_specs_token.content | trim -%}
+          {%- set _split = potos_basics_specs_url.split('://', 1) -%}
+          {{ _split[0] }}://x-access-token:{{ _token | urlencode }}@{{ _split[1] }}
+          {%- else -%}
+          {{ potos_basics_specs_url }}
+          {%- endif -%}
+      no_log: true
+
+    - name: Wipe previous specs clone
+      ansible.builtin.file:
+        path: "{{ potos_basics_specs_clone_dir }}"
+        state: absent
+
+    - name: Clone the specs repo
+      ansible.builtin.git:
+        repo: "{{ potos_basics_specs_effective_url }}"
+        dest: "{{ potos_basics_specs_clone_dir }}"
+        version: "{{ potos_basics_specs_branch }}"
+        single_branch: true
+        depth: 1
+        accept_newhostkey: true
+      no_log: true
+
+    - name: Check for specs requirements.yml
       ansible.builtin.stat:
-        path: '{{ playbook_dir }}/specs'
-      register: check_potos_specs
+        path: "{{ potos_basics_specs_clone_dir }}/requirements.yml"
+      register: potos_basics_specs_requirements
 
-    - name: Error handling
-      ansible.builtin.debug:
-        msg: 'Unable to find an potos specs repo for {{ potos_specs.client_name }}'
-      when: not check_potos_specs.stat.exists
+    - name: Install specs collections
+      ansible.builtin.command:
+        cmd: >-
+          {{ potos_basics_virtenvdir }}/bin/ansible-galaxy collection install
+          -r {{ potos_basics_specs_clone_dir }}/requirements.yml
+          -p {{ potos_basics_specs_galaxy_dir }}/collections
+          --force
+      when: potos_basics_specs_requirements.stat.exists
+      changed_when: true
 
-    - name: Configure playbook with specs for {{ potos_client_name }}
-      when: check_potos_specs.stat.exists
-      block:
+    - name: Install specs roles into a per-clone galaxy dir
+      ansible.builtin.command:
+        cmd: >-
+          {{ potos_basics_virtenvdir }}/bin/ansible-galaxy role install
+          -r {{ potos_basics_specs_clone_dir }}/requirements.yml
+          -p {{ potos_basics_specs_galaxy_dir }}/roles
+          --force
+      when: potos_basics_specs_requirements.stat.exists
+      changed_when: true
 
-        - name: Get templates
-          ansible.builtin.find:
-            path: '{{ playbook_dir }}/specs/templates'
-            recurse: yes
-            file_type: file
-          register: potos_playbook_specs_templates
+    - name: Check for the specs runtime.yml
+      ansible.builtin.stat:
+        path: "{{ potos_basics_specs_clone_dir }}/runtime.yml"
+      register: potos_basics_specs_runs_stat
 
-        - name: Create parent dir for templates
-          ansible.builtin.file:
-            path: '{{ item | regex_replace("^(.*?)\/specs\/templates(.*?)(\.j2)$", "\1\2") | dirname }}'
-            state: 'directory'
-            recurse: yes
-          loop: '{{ potos_playbook_specs_templates.files | map(attribute="path") | list }}'
-
-        - name: Apply templates
-          ansible.builtin.template:
-            src: '{{ item }}'
-            dest: '{{ item | regex_replace("^(.*?)\/specs\/templates(.*?)(\.j2)$", "\1\2") }}'
-            mode: 0444
-            owner: root
-            group: root
-          loop: '{{ potos_playbook_specs_templates.files | map(attribute="path") | list }}'
-
-        - name: Get files to copy
-          ansible.builtin.find:
-            path: '{{ playbook_dir }}/specs/files'
-            recurse: yes
-            file_type: file
-          register: potos_playbook_specs_files
-
-        - name: Create parent dir for files
-          ansible.builtin.file:
-            path: '{{ item | regex_replace("^(.*?)\/specs\/files(.*?)$", "\1\2") | dirname }}'
-            state: 'directory'
-            recurse: yes
-          loop: '{{ potos_playbook_specs_files.files | map(attribute="path") | list }}'
-
-        - name: Copy files
-          ansible.builtin.copy:
-            src: '{{ item }}'
-            dest: '{{ item | regex_replace("^(.*?)\/specs\/files(.*?)$", "\1\2") }}'
-            mode: 0444
-            owner: root
-            group: root
-          loop: '{{ potos_playbook_specs_files.files | map(attribute="path") | list }}'
-
-        - name: Get vars to copy
-          ansible.builtin.find:
-            path: '{{ playbook_dir }}/specs/vars'
-            recurse: yes
-            file_type: file
-          register: potos_playbook_specs_vars
-
-        - name: Create parent dir for vars
-          ansible.builtin.file:
-            path: '{{ item | regex_replace("^(.*?)\/specs\/vars(.*?)$", "\1/host_vars/localhost\2") | dirname }}'
-            state: 'directory'
-            recurse: yes
-          loop: '{{ potos_playbook_specs_vars.files | map(attribute="path") | list }}'
-
-        - name: Copy vars
-          ansible.builtin.copy:
-            src: '{{ item }}'
-            dest: '{{ item | regex_replace("^(.*?)\/specs\/vars(.*?)$", "\1/host_vars/localhost\2") }}'
-            mode: 0444
-            owner: root
-            group: root
-          loop: '{{ potos_playbook_specs_vars.files | map(attribute="path") | list }}'
-
-        - name: Install required collections
-          ansible.builtin.command:
-            cmd: 'ansible-galaxy collection install -r collections.yml -p /etc/ansible/collections'
-            chdir: '{{ playbook_dir }}'
-          changed_when: False
-
-      rescue:
-        - name: Error handling
-          ansible.builtin.debug:
-            msg: 'Error while deploying {{ potos_client_name }} ansible vars'
+    - name: Fail when specs runtime.yml is missing
+      ansible.builtin.fail:
+        msg: >-
+          The specs repository at {{ potos_basics_specs_url }} does not contain
+          a runtime.yml at its root. This file is required and declares which
+          roles run for each runtype.
+      when: not potos_basics_specs_runs_stat.stat.exists

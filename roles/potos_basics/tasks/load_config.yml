@@ -1,0 +1,29 @@
+---
+- name: Check for system config file
+  ansible.builtin.stat:
+    path: "{{ potos_basics_config_file }}"
+  register: potos_basics_config_stat
+
+- name: Load system config
+  ansible.builtin.include_vars:
+    file: "{{ potos_basics_config_file }}"
+    name: potos_config
+  when: potos_basics_config_stat.stat.exists
+
+- name: Apply derived base role variables from system config
+  ansible.builtin.set_fact:
+    potos_basics_specs_url: >-
+      {{ potos_config.specs.url | default(potos_basics_specs_url) }}
+    potos_basics_specs_branch: >-
+      {{ potos_config.specs.branch | default(potos_basics_specs_branch) }}
+    potos_basics_client_name: >-
+      {{ potos_config.client_name.short | default(potos_basics_client_name) }}
+  when: potos_basics_config_stat.stat.exists
+
+- name: Apply role_vars from system config
+  ansible.builtin.set_fact:
+    "{{ item.key }}": "{{ item.value }}"
+  loop: "{{ (potos_config.role_vars | default({})) | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+  when: potos_basics_config_stat.stat.exists

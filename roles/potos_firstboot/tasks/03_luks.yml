@@ -34,7 +34,7 @@
         POTOS_NEW_LUKS_PW2="$(echo ${USERINPUT} | cut -d '|' -f 3)"
 
         #Test POTOS_OLD_LUKS_PW if the given Password is correct.
-          eval "$(awk '/crypt/ {print $2}' /etc/crypttab)" && LUKS_DEVICE="$(realpath "/dev/disk/by-uuid/${UUID}")"
+          eval "$(awk '{print $2}' /etc/crypttab)" && LUKS_DEVICE="$(realpath "/dev/disk/by-uuid/${UUID}")"
           printf "${POTOS_OLD_LUKS_PW}" | sudo cryptsetup luksOpen --test-passphrase $LUKS_DEVICE
         if [ $? -eq 0 ]; then
           POTOS_OLD_LUKS_PW_TEST="correct"
@@ -62,7 +62,7 @@
       done
 
       #Change disk encryption password now
-      eval "$(awk '/crypt/ {print $2}' /etc/crypttab)" && LUKS_DEVICE="$(realpath "/dev/disk/by-uuid/${UUID}")"
+      eval "$(awk '{print $2}' /etc/crypttab)" && LUKS_DEVICE="$(realpath "/dev/disk/by-uuid/${UUID}")"
       printf '%s\n' "${POTOS_OLD_LUKS_PW}" "${POTOS_NEW_LUKS_PW}" | cryptsetup luksChangeKey "${LUKS_DEVICE}" -q
       if [[ $? -ne 0 ]]; then
         echo "# Failed to change primary disk encryption key."

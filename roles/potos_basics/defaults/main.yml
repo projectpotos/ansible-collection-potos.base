@@ -1,0 +1,49 @@
+---
+# Short client name. Used for unit / file naming and log labels.
+potos_basics_client_name: "{{ potos_plays_client_short_name | default('potos') }}"
+
+# On-disk layout
+potos_basics_etc_dir: /etc/potos
+potos_basics_state_dir: "/var/lib/{{ potos_basics_client_name | lower }}"
+potos_basics_workdir: "{{ potos_basics_state_dir }}/ansible"
+potos_basics_virtenvdir: "{{ potos_basics_state_dir }}/virtenv"
+potos_basics_logdir: "/var/log/{{ potos_basics_client_name | lower }}"
+potos_basics_libexec_dir: /usr/libexec/potos
+potos_basics_inventory: "{{ potos_basics_workdir }}/{{ potos_basics_client_name | lower }}_inventory"
+
+# Files written by the installer / firstboot wizard, read to be consumed
+potos_basics_config_file: "{{ potos_basics_etc_dir }}/config.yml"
+potos_basics_specs_token_file: "{{ potos_basics_etc_dir }}/specs_token"
+potos_basics_ansible_vault_key_file: "{{ potos_basics_etc_dir }}/ansible_vault_key"
+
+# Specs repository config
+potos_basics_specs_url: ""
+potos_basics_specs_branch: "main"
+potos_basics_specs_clone_dir: "{{ potos_basics_state_dir }}/specs"
+
+# Per-clone galaxy dir. Collections / roles declared in
+# <specs>/requirements.yml are installed here on every run, so they get the
+# same wipe-and-reinstall treatment as the specs tree itself. The system
+# collections path (/usr/share/ansible/collections) is kept as a fallback so
+# potos.base itself stays resolvable.
+potos_basics_specs_galaxy_dir: "{{ potos_basics_specs_clone_dir }}/.galaxy"
+
+# Run types. Each entry with on_calendar gets a systemd timer.
+potos_basics_runtypes:
+  - runtype: daily
+    on_calendar: daily
+  - runtype: hourly
+    on_calendar: hourly
+
+# When false, install the wrapper + units but do not enable/start the timers.
+potos_basics_timer_activate: true
+
+# Wrapper script behaviour
+potos_basics_always_verbose: false
+potos_basics_enable_reboot_reminder: true
+potos_basics_reboot_reminder_days: 10
+potos_basics_on_error_additional_lines:
+  - "Contact your local administrator at admin@example.com"
+
+# Package management
+potos_basics_packages_enforce_latest: false

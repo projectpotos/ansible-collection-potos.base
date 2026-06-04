@@ -22,22 +22,19 @@ Including an example of how to use your role (for instance, with variables passe
 - name: Execute tasks on servers
   hosts: servers
   roles:
-    - role: potos.base.run
-      run_x: 42
+    - role: potos.base.potos_firstboot
 ```
 
 Another way to consume this role would be:
 
 ```yaml
-- name: Initialize the run role from potos.base
+- name: Initialize the firstboot role from potos.base
   hosts: servers
   gather_facts: false
   tasks:
-    - name: Trigger invocation of run role
+    - name: Trigger invocation of firstboot role
       ansible.builtin.include_role:
-        name: potos.base.run
-      vars:
-        run_x: 42
+        name: potos.base.potos_firstboot
 ```
 
 ## Role Idempotency

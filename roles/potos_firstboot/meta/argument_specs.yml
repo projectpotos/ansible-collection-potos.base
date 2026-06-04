@@ -2,78 +2,96 @@
 
 argument_specs:
   main:
-    short_description: Role to run handle base questions in Potos Linux Clients.
+    short_description: First-boot wizard for Potos Linux Clients.
+    description:
+      - Asks the user the unattended-install questions that cannot be answered
+        beforehand (hostname, local user, disk-encryption passphrase), then
+        acquires the credentials needed for the periodic potos run to reach
+        the (potentially private) specs repository.
+      - This role is intentionally decoupled from the specs repository.
+        Configuration is read from the ISO config file written at install time.
     options:
       potos_firstboot_precommands:
-        description:
-          - Custom commands to execute before the first boot role
+        description: Commands to execute before the first-boot wizard.
         type: list
         elements: str
-        required: false
         default: []
       potos_firstboot_postcommands:
-        description:
-          - Custom commands to execute after the first boot role
+        description: Commands to execute after the first-boot wizard.
         type: list
         elements: str
-        required: false
         default: []
-      potos_firstboot_hostname_script:
-        description:
-          - Script to be executed to determine hostname
-        type: str
-        required: false
-        default: ''
       potos_firstboot_ask_hostname:
-        description:
-          - If the user should be asked for a hostname when not set before
+        description: Whether to ask the user for a hostname.
         type: bool
-        required: false
         default: true
       potos_firstboot_local_user_add:
-        description:
-          - Ask to create a new local user
+        description: Whether to ask the user to create a local account.
         type: bool
-        required: false
         default: true
       potos_firstboot_local_groups:
-        description:
-          - Local groups to create
+        description: System groups to create before adding the user.
         type: list
         elements: str
-        required: false
         default: []
       potos_firstboot_local_user_groups:
-        description:
-          - Local groups the local user is added to
+        description: Secondary groups the new local user is added to.
         type: list
         elements: str
-        required: false
         default:
-          - sudo
+          - wheel
       potos_firstboot_local_user_add_shell:
-        description:
-          - Define the new user shell, we recommend /bin/bash
+        description: Login shell for the new local user.
         type: str
-        required: false
         default: /bin/bash
       potos_firstboot_initial_user_delete_admin_iso_user:
-        description:
-          - Delete admin user from .iso install file.
-          - Do not delete this admin user, if above no new sudo permissioned user is created ;-)
+        description: Delete the initial admin account shipped in the ISO.
         type: bool
-        required: false
         default: true
       potos_firstboot_ask_change_disk_enc_pw:
-        description:
-          - Ask change disk encryption password (if disk encryption is enabled in iso)
+        description: Whether to ask the user to change the LUKS passphrase.
         type: bool
-        required: false
         default: true
       potos_firstboot_client_name:
-        description:
-          - Clientname to be used
-          - Do NOT change if using with the Potos Playbook!
+        description: Short client name used in dialog titles.
         type: str
-        required: false
-        default: "{{ potos_plays_client_short_name | default('potos') }}"
+        default: potos
+      potos_firstboot_credentials_source:
+        description: Where the specs-repo token is acquired from.
+        type: str
+        choices: [none, prompt, openbao, script]
+        default: none
+      potos_firstboot_credentials_token_file:
+        description: Destination file for the resolved specs-repo token.
+        type: str
+        default: /etc/potos/specs_token
+      potos_firstboot_credentials_openbao:
+        description: Configuration block for the openbao credential source.
+        type: dict
+        default:
+          url: ''
+          role: ''
+          mount: oidc
+          secret_path: ''
+          field: token
+      potos_firstboot_credentials_script:
+        description: Path to a script that prints the specs-repo token to stdout.
+        type: str
+        default: /usr/libexec/potos/credentials.sh
+      potos_firstboot_extra_roles:
+        description: Additional roles to run after the default firstboot tasks.
+        type: list
+        elements: dict
+        default: []
+      potos_firstboot_done_marker:
+        description: Marker file written when firstboot has completed.
+        type: str
+        default: /var/lib/potos/firstboot.done
+      potos_firstboot_autostart_file:
+        description: Autostart .desktop file removed after firstboot completes.
+        type: str
+        default: /etc/xdg/autostart/potos-firstboot.desktop
+      potos_firstboot_activate_timer:
+        description: Activate the periodic potos timer after firstboot completes.
+        type: bool
+        default: true

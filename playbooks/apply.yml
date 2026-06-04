@@ -1,0 +1,35 @@
+---
+
+- name: Potos periodic run - stage 2 (specs apply)
+  hosts: all
+  become: true
+  gather_facts: true
+
+  vars:
+    # Default runtype when invoked outside a timer
+    potos_runtype: daily
+
+  pre_tasks:
+    - name: Load the specs runtime.yml
+      ansible.builtin.include_vars:
+        file: "{{ potos_specs_dir }}/runtime.yml"
+        name: potos_specs_runs
+
+    - name: Validate the runtime.yml structure
+      ansible.builtin.assert:
+        that:
+          - potos_specs_runs.runtypes is mapping
+          - potos_runtype in potos_specs_runs.runtypes
+          - potos_specs_runs.runtypes[potos_runtype] is iterable
+        fail_msg: >-
+          {{ potos_specs_dir }}/runtime.yml must define
+          runtypes.{{ potos_runtype }} as a list of role names.
+
+  tasks:
+    - name: Run roles declared for runtype "{{ potos_runtype }}"
+      ansible.builtin.include_role:
+        name: "{{ _role }}"
+      loop: "{{ potos_specs_runs.runtypes[potos_runtype] }}"
+      loop_control:
+        loop_var: _role
+        label: "{{ _role }}"

@@ -92,13 +92,3 @@
     - potos_firstboot_local_user_add
   tags:
     - 'molecule-notest'
-
-- name: Delete initial local user from env
-  ansible.builtin.user:
-    name: "{{ potos_firstboot_initial_username.stdout }}"
-    state: absent
-  when:
-    - potos_firstboot_initial_user_delete_admin_iso_user
-    - ( not potos_firstboot_local_user_add or ( potos_firstboot_new_user_password.stdout_lines[0] != potos_firstboot_initial_username.stdout ) )
-  tags:
-    - 'molecule-notest'

@@ -6,12 +6,6 @@
   register: potos_firstboot_old_hostname
   changed_when: false
 
-- name: Run hostname script
-  ansible.builtin.shell:
-    cmd: "{{ potos_firstboot_hostname_script }}"
-  changed_when: false
-  when: potos_firstboot_hostname_script != ''
-
 - name: Ask hostname
   ansible.builtin.shell:
     executable: '/bin/bash'

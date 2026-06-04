@@ -1,34 +1,39 @@
 ---
 
-- name: Pre commands
+- name: Run pre-commands
   ansible.builtin.shell:
     cmd: '{{ item }}'
   loop: '{{ potos_firstboot_precommands }}'
+  changed_when: true
   when:
-    - potos_firstboot_precommands is defined
     - potos_firstboot_precommands is iterable
     - potos_firstboot_precommands is not string
     - potos_firstboot_precommands is not mapping
 
-- name: Make sure YAD is installed
+- name: Ensure YAD is installed
   ansible.builtin.package:
-    name: 'yad'
+    name: yad
+    state: present
 
-- name: Get Hostname
+- name: Ask for hostname
   ansible.builtin.include_tasks: 01_hostname.yml
 
-- name: Set user
+- name: Ask for local user
   ansible.builtin.include_tasks: 02_user.yml
 
-- name: Set disk encryption
+- name: Change disk encryption passphrase
   ansible.builtin.include_tasks: 03_luks.yml
 
-- name: Post commands
+- name: Acquire specs repo credentials
+  ansible.builtin.include_tasks: 04_credentials.yml
+  when: potos_firstboot_credentials_source != 'none'
+
+- name: Run post-commands
   ansible.builtin.shell:
     cmd: '{{ item }}'
   loop: '{{ potos_firstboot_postcommands }}'
+  changed_when: true
   when:
-    - potos_firstboot_postcommands is defined
     - potos_firstboot_postcommands is iterable
     - potos_firstboot_postcommands is not string
     - potos_firstboot_postcommands is not mapping
