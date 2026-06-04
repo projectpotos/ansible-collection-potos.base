@@ -7,7 +7,7 @@ yamllint~=1.38.0
 
 ## molecule tests
 molecule~=26.4.0
-molecule-plugins~=23.5.3
+molecule-plugins~=25.8.12
 docker~=7.1.0
 
 # pytest
