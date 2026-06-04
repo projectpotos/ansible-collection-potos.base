@@ -12,7 +12,7 @@
   pre_tasks:
     - name: Apply the base role
       ansible.builtin.import_role:
-        name: potos.base.basics
+        name: potos.base.potos_basics
 
   tasks:
     - name: Abort gracefully when no specs repo is configured

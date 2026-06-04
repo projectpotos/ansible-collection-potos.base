@@ -119,7 +119,7 @@ sequenceDiagram
     FS->>FB: pkexec firstboot-wrapper.sh
     FB->>FB: include_role potos.base.potos_firstboot<br/>(yad dialogs, credential prompt, ...)
     FB->>FS: write /etc/potos/specs_token
-    FB->>FS: include_role potos.base.basics
+    FB->>FS: include_role potos.base.potos_basics
     FB->>FS: rm autostart, touch firstboot.done
 
     Note over T,S2: Periodic run
@@ -138,8 +138,8 @@ sequenceDiagram
 
 | Setting                                | Set in                                                     | Read in                              |
 |----------------------------------------|------------------------------------------------------------|--------------------------------------|
-| Specs repo URL / branch                | kickstart `input/config.yml` → `/etc/potos/config.yml`     | `potos.base.basics` load_config        |
-| Client short / long name               | kickstart `input/config.yml` → `/etc/potos/config.yml`     | `potos.base.basics` load_config        |
+| Specs repo URL / branch                | kickstart `input/config.yml` → `/etc/potos/config.yml`     | `potos.base.potos_basics` load_config        |
+| Client short / long name               | kickstart `input/config.yml` → `/etc/potos/config.yml`     | `potos.base.potos_basics` load_config        |
 | Firstboot credential source / openbao  | kickstart `input/config.yml` → `role_vars`                 | `potos.base.potos_firstboot`         |
 | Firstboot credential script            | kickstart `input/credentials.sh` (convention; no config)   | `potos.base.potos_firstboot`         |
 | Specs token                            | firstboot → `/etc/potos/specs_token`                       | `potos.base.prepare` (stage 1)       |

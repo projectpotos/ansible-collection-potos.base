@@ -78,6 +78,6 @@ potos_firstboot_done_marker: /var/lib/potos/firstboot.done
 potos_firstboot_autostart_file: /etc/xdg/autostart/potos-firstboot.desktop
 
 ## When true, after a successful firstboot, enable+start the potos.timer (via
-## the potos.base.basics role). The collection's firstboot playbook handles
+## the potos.base.potos_basics role). The collection's firstboot playbook handles
 ## this; you only need to disable it for tests.
 potos_firstboot_activate_timer: true

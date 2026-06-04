@@ -65,7 +65,7 @@
 
     - name: Apply base role
       ansible.builtin.include_role:
-        name: potos.base.basics
+        name: potos.base.potos_basics
 
     - name: Remove the firstboot autostart entry
       ansible.builtin.file:
