@@ -1,3 +1,24 @@
 # Contributing
 
 Refer to the [Ansible community guide](https://docs.ansible.com/ansible/devel/community/index.html).
+
+## Development environment
+
+The local development and test toolchain (ansible, ansible-lint, yamllint, molecule, pytest, …) is managed with [uv](https://docs.astral.sh/uv/).
+The dependencies and their pinned versions live in `pyproject.toml` and `uv.lock`.
+This is a dev-only environment and is never published as part of the collection (the collection itself is defined by `galaxy.yml`).
+
+Set up the environment and run the tooling:
+
+```bash
+# Create/refresh the virtualenv (.venv) from the lockfile
+uv sync
+
+# Run any tool inside the environment
+uv run ansible-lint
+uv run yamllint .
+uv run pytest
+uv run molecule test -s firstboot
+```
+
+Add or bump a dev dependency with `uv add --dev <pkg>`
