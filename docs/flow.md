@@ -1,4 +1,5 @@
 <!-- cspell: ignore CMDB FQDN runtypes -->
+
 # Potos system flow
 
 This document describes how a Potos host is bootstrapped from a kickstart
@@ -20,25 +21,25 @@ ISO and then kept in spec by periodic Ansible runs. It is the canonical
 
 ## File layout on the installed system
 
-| Path                                             | Owner       | Purpose                                                         |
-|--------------------------------------------------|-------------|-----------------------------------------------------------------|
-| `/etc/potos/config.yml`                          | kickstart   | Single non-secret system config. Read on every ansible run.     |
-| `/etc/potos/specs_token`                         | firstboot   | Token used to clone the specs repo (mode 0400).                 |
-| `/etc/potos/ansible_vault_key`                   | operator    | Optional vault password file.                                   |
-| `/var/lib/potos/inventory/<client>_inventory`    | firstboot   | One line: `<fqdn> ansible_connection=local`.                    |
-| `/usr/share/ansible/collections/...`             | kickstart   | Bundled `potos.base` collection (offline-installable).          |
-| `/usr/libexec/potos/credentials.sh`              | kickstart   | Optional credential-source script (only if shipped on the ISO). |
-| `/usr/libexec/potos/firstboot-wrapper.sh`        | kickstart   | Autostart entry point for the firstboot play.                   |
-| `/usr/local/bin/<client>-ansible-pull`           | base role   | Wrapper invoked by each runtype's systemd timer.                |
-| `/var/lib/potos/specs/`                          | stage 1     | Specs repo clone. Wiped + re-cloned on every run.               |
-| `/var/lib/potos/specs/.galaxy/`                  | stage 1     | Per-clone collections/roles installed from specs requirements.  |
-| `/var/lib/potos/firstboot.done`                  | firstboot   | Marker that prevents firstboot from running twice.              |
+| Path                                          | Owner     | Purpose                                                         |
+| --------------------------------------------- | --------- | --------------------------------------------------------------- |
+| `/etc/potos/config.yml`                       | kickstart | Single non-secret system config. Read on every ansible run.     |
+| `/etc/potos/specs_token`                      | firstboot | Token used to clone the specs repo (mode 0400).                 |
+| `/etc/potos/ansible_vault_key`                | operator  | Optional vault password file.                                   |
+| `/var/lib/potos/inventory/<client>_inventory` | firstboot | One line: `<fqdn> ansible_connection=local`.                    |
+| `/usr/share/ansible/collections/...`          | kickstart | Bundled `potos.base` collection (offline-installable).          |
+| `/usr/libexec/potos/credentials.sh`           | kickstart | Optional credential-source script (only if shipped on the ISO). |
+| `/usr/libexec/potos/firstboot-wrapper.sh`     | kickstart | Autostart entry point for the firstboot play.                   |
+| `/usr/local/bin/<client>-ansible-pull`        | base role | Wrapper invoked by each runtype's systemd timer.                |
+| `/var/lib/potos/specs/`                       | stage 1   | Specs repo clone. Wiped + re-cloned on every run.               |
+| `/var/lib/potos/specs/.galaxy/`               | stage 1   | Per-clone collections/roles installed from specs requirements.  |
+| `/var/lib/potos/firstboot.done`               | firstboot | Marker that prevents firstboot from running twice.              |
 
 ## `/etc/potos/config.yml` schema
 
 ```yaml
 client_name:
-  short: potos                  # used for naming (timers, log dirs, ...)
+  short: potos # used for naming (timers, log dirs, ...)
   long: Potos Linux Client
 
 specs:
@@ -46,7 +47,7 @@ specs:
   branch: main
 
 role_vars:
-  potos_firstboot_credentials_source: openbao   # none | prompt | openbao | script
+  potos_firstboot_credentials_source: openbao # none | prompt | openbao | script
   potos_firstboot_credentials_openbao:
     url: https://bao.example.com
     role: potos
@@ -80,7 +81,7 @@ provide the following layout:
 ```yaml
 runtypes:
   hourly: [mycorp.security.audit]
-  daily:  [mycorp.patching.apply, mycorp.security.audit]
+  daily: [mycorp.patching.apply, mycorp.security.audit]
 ```
 
 ### Inventory
@@ -136,13 +137,13 @@ sequenceDiagram
 
 ## "Where is X set?" quick reference
 
-| Setting                                | Set in                                                     | Read in                              |
-|----------------------------------------|------------------------------------------------------------|--------------------------------------|
-| Specs repo URL / branch                | kickstart `input/config.yml` → `/etc/potos/config.yml`     | `potos.base.potos_basics` load_config        |
-| Client short / long name               | kickstart `input/config.yml` → `/etc/potos/config.yml`     | `potos.base.potos_basics` load_config        |
-| Firstboot credential source / openbao  | kickstart `input/config.yml` → `role_vars`                 | `potos.base.potos_firstboot`         |
-| Firstboot credential script            | kickstart `input/credentials.sh` (convention; no config)   | `potos.base.potos_firstboot`         |
-| Specs token                            | firstboot → `/etc/potos/specs_token`                       | `potos.base.prepare` (stage 1)       |
-| Which roles run for a runtype          | specs repo `runtime.yml`                                   | `potos.base.apply` (stage 2)         |
-| Per-host overrides                     | specs repo `host_vars/<fqdn>/*.yml`                        | stage 2 via inventory                |
-| Per-group overrides                    | specs repo `group_vars/<group>.yml`                        | stage 2 via inventory                |
+| Setting                               | Set in                                                   | Read in                               |
+| ------------------------------------- | -------------------------------------------------------- | ------------------------------------- |
+| Specs repo URL / branch               | kickstart `input/config.yml` → `/etc/potos/config.yml`   | `potos.base.potos_basics` load_config |
+| Client short / long name              | kickstart `input/config.yml` → `/etc/potos/config.yml`   | `potos.base.potos_basics` load_config |
+| Firstboot credential source / openbao | kickstart `input/config.yml` → `role_vars`               | `potos.base.potos_firstboot`          |
+| Firstboot credential script           | kickstart `input/credentials.sh` (convention; no config) | `potos.base.potos_firstboot`          |
+| Specs token                           | firstboot → `/etc/potos/specs_token`                     | `potos.base.prepare` (stage 1)        |
+| Which roles run for a runtype         | specs repo `runtime.yml`                                 | `potos.base.apply` (stage 2)          |
+| Per-host overrides                    | specs repo `host_vars/<fqdn>/*.yml`                      | stage 2 via inventory                 |
+| Per-group overrides                   | specs repo `group_vars/<group>.yml`                      | stage 2 via inventory                 |

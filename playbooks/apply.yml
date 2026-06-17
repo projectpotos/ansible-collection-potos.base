@@ -1,5 +1,4 @@
 ---
-
 - name: Potos periodic run - stage 2 (specs apply)
   hosts: all
   become: true

@@ -1,7 +1,7 @@
 ---
 - name: Check if disk encryption is enabled in iso
   ansible.builtin.shell:
-    cmd: 'lsblk | grep crypt | wc -l'
+    cmd: "lsblk | grep crypt | wc -l"
   register: potos_firstboot_is_crypt
   changed_when: false
 
@@ -67,7 +67,7 @@
     - potos_firstboot_ask_change_disk_enc_pw
     - potos_firstboot_is_crypt.stdout != '0'
   tags:
-    - 'molecule-notest'
+    - "molecule-notest"
 
 - name: Change disk encryption password
   ansible.builtin.shell:
@@ -83,4 +83,4 @@
     - potos_firstboot_ask_change_disk_enc_pw
     - potos_firstboot_is_crypt.stdout != '0'
   tags:
-    - 'molecule-notest'
+    - "molecule-notest"

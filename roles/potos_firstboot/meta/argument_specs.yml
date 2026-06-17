@@ -1,5 +1,4 @@
 ---
-
 argument_specs:
   main:
     short_description: First-boot wizard for Potos Linux Clients.
@@ -69,10 +68,10 @@ argument_specs:
         description: Configuration block for the openbao credential source.
         type: dict
         default:
-          url: ''
-          role: ''
+          url: ""
+          role: ""
           mount: oidc
-          secret_path: ''
+          secret_path: ""
           field: token
       potos_firstboot_credentials_script:
         description: Path to a script that prints the specs-repo token to stdout.

@@ -49,7 +49,7 @@
   no_log: true
   when: potos_firstboot_local_user_add
   tags:
-    - 'molecule-notest'
+    - "molecule-notest"
 
 - name: Add local groups
   ansible.builtin.group:
@@ -62,7 +62,7 @@
     - potos_firstboot_local_groups is not string
     - potos_firstboot_local_groups is not mapping
   tags:
-    - 'molecule-notest'
+    - "molecule-notest"
 
 - name: use potos_firstboot_local_user_groups list
   ansible.builtin.set_fact:
@@ -89,4 +89,4 @@
   when:
     - potos_firstboot_local_user_add
   tags:
-    - 'molecule-notest'
+    - "molecule-notest"

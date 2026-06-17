@@ -1,9 +1,8 @@
 ---
-
 - name: Run pre-commands
   ansible.builtin.shell:
-    cmd: '{{ item }}'
-  loop: '{{ potos_firstboot_precommands }}'
+    cmd: "{{ item }}"
+  loop: "{{ potos_firstboot_precommands }}"
   changed_when: true
   when:
     - potos_firstboot_precommands is iterable
@@ -30,8 +29,8 @@
 
 - name: Run post-commands
   ansible.builtin.shell:
-    cmd: '{{ item }}'
-  loop: '{{ potos_firstboot_postcommands }}'
+    cmd: "{{ item }}"
+  loop: "{{ potos_firstboot_postcommands }}"
   changed_when: true
   when:
     - potos_firstboot_postcommands is iterable

@@ -56,8 +56,8 @@ argument_specs:
         type: list
         elements: dict
         default:
-          - {runtype: daily, on_calendar: daily}
-          - {runtype: hourly, on_calendar: hourly}
+          - { runtype: daily, on_calendar: daily }
+          - { runtype: hourly, on_calendar: hourly }
         options:
           runtype:
             type: str

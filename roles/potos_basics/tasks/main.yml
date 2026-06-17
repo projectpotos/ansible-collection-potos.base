@@ -20,12 +20,12 @@
     group: root
     mode: "{{ item.mode }}"
   loop:
-    - {path: "{{ potos_basics_etc_dir }}", mode: "0750"}
-    - {path: "{{ potos_basics_state_dir }}", mode: "0750"}
-    - {path: "{{ potos_basics_workdir }}", mode: "0750"}
-    - {path: "{{ potos_basics_logdir }}", mode: "0750"}
-    - {path: "{{ potos_basics_libexec_dir }}", mode: "0755"}
-    - {path: "{{ potos_basics_inventory | dirname }}", mode: "0750"}
+    - { path: "{{ potos_basics_etc_dir }}", mode: "0750" }
+    - { path: "{{ potos_basics_state_dir }}", mode: "0750" }
+    - { path: "{{ potos_basics_workdir }}", mode: "0750" }
+    - { path: "{{ potos_basics_logdir }}", mode: "0750" }
+    - { path: "{{ potos_basics_libexec_dir }}", mode: "0755" }
+    - { path: "{{ potos_basics_inventory | dirname }}", mode: "0750" }
 
 - name: Determine FQDN
   ansible.builtin.command:

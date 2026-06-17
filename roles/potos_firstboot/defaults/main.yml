@@ -9,7 +9,7 @@ potos_firstboot_postcommands: []
 potos_firstboot_ask_keyboardlayout: true
 
 # Sentence to ask user to select a keyboard layout
-potos_firstboot_ask_select_keyboardlayout: 'Please select your keyboard layout'
+potos_firstboot_ask_select_keyboardlayout: "Please select your keyboard layout"
 
 # Ask Hostname in an extra popup
 potos_firstboot_ask_hostname: true
@@ -50,11 +50,11 @@ potos_firstboot_credentials_token_file: /etc/potos/specs_token
 # (the user authenticates in a browser on another device), then reads a
 # single field from the configured KV v2 path and uses it as the token.
 potos_firstboot_credentials_openbao:
-  url: ''
-  role: ''
+  url: ""
+  role: ""
   mount: oidc
   # KV v2 path to the secret holding the token, e.g. 'kv/potos/specs'.
-  secret_path: ''
+  secret_path: ""
   # Field inside the secret whose value is the token.
   field: token
 

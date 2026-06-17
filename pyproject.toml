@@ -17,6 +17,7 @@ dev = [
     "pytest-ansible",
     "pytest-xdist",
     "ruff>=0.15.17",
+    "pre-commit>=4.6.0",
 ]
 
 [tool.uv]

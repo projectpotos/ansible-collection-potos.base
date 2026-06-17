@@ -10,6 +10,12 @@ vars:
   SCENARIO: firstboot
 
 tasks:
+  dev:setup:
+    desc: Setup the development environment
+    cmds:
+      - uv sync
+      - uv run pre-commit install
+
   sync:
     desc: Create/refresh the dev virtualenv from uv.lock
     cmds:
