@@ -7,32 +7,33 @@
   changed_when: false
 
 - name: Ask hostname
-  ansible.builtin.shell:
-    executable: '/bin/bash'
-    cmd: |
-      while [[ -z ${POTOS_HOSTNAME} ]]; do
-        USERINPUT="$(yad --fullscreen --title '{{ potos_firstboot_client_name }} Hostname' \
-        --borders 20 --align center \
-        --button gtk-ok \
-        --button "Change keyboard layout":"/setup/change-keyboard-layout.sh" \
-        --image-on-top --image=/setup/logo.png \
-        --text \
-      "Please enter your hostname below.
-      " \
-        --form \
-        --field 'Hostname' \
-      )"
-
-      POTOS_HOSTNAME="$(echo ${USERINPUT} | cut -d '|' -f 1)"
-
-      if [[ -z ${POTOS_HOSTNAME} ]]; then
-        yad --title "{{ potos_firstboot_client_name }} HOSTNAME" \
-          --borders 20 --align center --button gtk-ok --image-on-top \
-          --image=/setup/logo.png \
-          --text 'Please choose the hostname.'
-      fi
-      done
-      echo $POTOS_HOSTNAME
+  potos.base.yad:
+    dialog: form
+    title: "{{ potos_firstboot_client_name }} Hostname"
+    text: |
+      Please enter your hostname below.
+    fullscreen: true
+    borders: 20
+    align: center
+    image: /setup/logo.png
+    image_on_top: true
+    fields:
+      - label: Hostname
+    buttons:
+      - label: gtk-ok
+      - label: Change keyboard layout
+        action: /setup/change-keyboard-layout.sh
+    validations:
+      - type: required
+        field: Hostname
+        error_message: Please choose the hostname.
+      - type: regex
+        field: Hostname
+        pattern: '^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$'
+        error_message: >-
+          Hostname is invalid! Make sure it only contains lowercase letters, digits and
+          hyphens. It must not start or end with a hyphen, and be at most 63 characters long.
+    max_attempts: 0
   register: potos_firstboot_hostname_dialog
   when:
     - potos_firstboot_hostname is undefined
@@ -42,7 +43,7 @@
 
 - name: Set hostname from dialog as an ansible fact
   ansible.builtin.set_fact:
-    potos_firstboot_hostname: '{{ potos_firstboot_hostname_dialog.stdout }}'
+    potos_firstboot_hostname: '{{ potos_firstboot_hostname_dialog.value }}'
   when:
     - potos_firstboot_hostname is undefined
     - potos_firstboot_ask_hostname
