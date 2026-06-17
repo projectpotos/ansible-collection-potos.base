@@ -10,6 +10,19 @@ argument_specs:
       - This role is intentionally decoupled from the specs repository.
         Configuration is read from the ISO config file written at install time.
     options:
+      potos_firstboot_setup_dir:
+        description:
+          - Directory the wizard renders helper scripts into (e.g. the keyboard
+            layout picker). Created at run time; independent of the ISO staging
+            directory, which the installer removes after install.
+        type: str
+        default: /var/lib/potos/setup
+      potos_firstboot_logo:
+        description:
+          - Logo image shown in the firstboot dialogs. yad shows no image when
+            the file is missing.
+        type: str
+        default: /usr/share/potos/logo.png
       potos_firstboot_precommands:
         description: Commands to execute before the first-boot wizard.
         type: list

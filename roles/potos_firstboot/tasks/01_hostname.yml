@@ -14,14 +14,15 @@
     fullscreen: true
     borders: 20
     align: center
-    image: /setup/logo.png
+    image: "{{ potos_firstboot_logo }}"
     image_on_top: true
     fields:
       - label: Hostname
     buttons:
-      - label: gtk-ok
+      - label: OK
+        id: 0
       - label: Change keyboard layout
-        action: /setup/change-keyboard-layout.sh
+        action: "{{ potos_firstboot_setup_dir }}/change-keyboard-layout.sh"
     validations:
       - type: required
         field: Hostname

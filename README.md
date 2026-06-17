@@ -3,6 +3,15 @@
 This repository contains the `potos.base` Ansible Collection.
 
 <!--start requires_ansible-->
+## Ansible version compatibility
+
+This collection has been tested against following Ansible versions: **>=2.15.0**.
+
+For collections that support Ansible 2.9, please ensure you update your `network_os` to use the
+fully qualified collection name (for example, `cisco.ios.ios`).
+Plugins and modules within a collection may be tested with only specific Ansible versions.
+A collection may contain metadata that identifies these versions.
+PEP440 is the schema used to describe the versions of Ansible.
 <!--end requires_ansible-->
 
 ## External requirements
@@ -14,6 +23,11 @@ which requirements are needed.
 ## Included content
 
 <!--start collection content-->
+### Modules
+Name | Description
+--- | ---
+[potos.base.yad](http://example.com/repository/blob/main/docs/potos.base.yad_module.rst)|Display a YAD (GTK) dialog and return the user's input
+
 <!--end collection content-->
 
 ## Using this collection

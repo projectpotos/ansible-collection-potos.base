@@ -73,16 +73,32 @@ def test_build_button_args_plain_and_action() -> None:
     """Buttons with an action should be encoded as ``label:action``."""
     args = yad._build_button_args(
         [
-            {"label": "gtk-ok"},
+            {"label": "OK"},
             {"label": "Change layout", "action": "/setup/kb.sh"},
         ],
     )
     assert args == [
         "--button",
-        "gtk-ok",
+        "OK",
         "--button",
         "Change layout:/setup/kb.sh",
     ]
+
+
+def test_build_button_args_numeric_id() -> None:
+    """A numeric id is encoded as ``label:id`` (the button's exit code)."""
+    args = yad._build_button_args([{"label": "OK", "id": 0}])
+    assert args == ["--button", "OK:0"]
+
+
+def test_build_button_args_action_and_id_are_mutually_exclusive() -> None:
+    with pytest.raises(yad.YadError):
+        yad._build_button_args([{"label": "OK", "action": "/x.sh", "id": 0}])
+
+
+def test_build_button_args_passes_through_gtk_stock_id() -> None:
+    """GTK stock ids are still accepted verbatim (not rewritten)."""
+    assert yad._build_button_args([{"label": "gtk-ok"}]) == ["--button", "gtk-ok"]
 
 
 def test_build_button_args_none() -> None:
@@ -321,7 +337,7 @@ def test_build_argv_form() -> None:
             {"label": "Username", "type": None, "default": None},
             {"label": "Password", "type": "H", "default": None},
         ],
-        buttons=[{"label": "gtk-ok", "action": None}],
+        buttons=[{"label": "OK", "action": None}],
     )
     argv, labels, tail = yad._build_argv(params)
     assert argv[0] == "yad"
@@ -356,7 +372,7 @@ def test_build_argv_message_adds_default_ok_button() -> None:
     params = _base_params(dialog="message", text="hello")
     argv, _, _ = yad._build_argv(params)
     assert "--button" in argv
-    assert "gtk-ok" in argv
+    assert yad.DEFAULT_OK_LABEL in argv
 
 
 def test_build_argv_form_requires_fields() -> None:

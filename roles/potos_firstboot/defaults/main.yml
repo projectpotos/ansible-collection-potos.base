@@ -5,6 +5,12 @@ potos_firstboot_precommands: []
 # Custom commands to execute after the first boot role
 potos_firstboot_postcommands: []
 
+# Directory the wizard renders its helper scripts into
+potos_firstboot_setup_dir: /var/lib/potos/setup
+
+# Logo shown in the firstboot dialogs.
+potos_firstboot_logo: /usr/share/potos/logo.png
+
 # If user can select his keyboard layout
 potos_firstboot_ask_keyboardlayout: true
 
