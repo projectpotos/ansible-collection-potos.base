@@ -1,0 +1,57 @@
+---
+version: "3"
+
+# Developer task runner for the potos.base collection (https://taskfile.dev).
+# All tasks run inside the uv-managed environment (see CONTRIBUTING).
+# List tasks with `go-task --list`; override the molecule scenario with:
+#   go-task molecule SCENARIO=basics
+
+vars:
+  SCENARIO: firstboot
+
+tasks:
+  sync:
+    desc: Create/refresh the dev virtualenv from uv.lock
+    cmds:
+      - uv sync
+
+  lint:
+    desc: Run ruff, yamllint and ansible-lint
+    cmds:
+      - uv run ruff check .
+      - uv run ruff format --check .
+      - uv run yamllint .
+      - uv run ansible-lint
+
+  format:
+    desc: Auto-format and auto-fix with ruff
+    cmds:
+      - uv run ruff check --fix .
+      - uv run ruff format .
+
+  test:unit:
+    desc: Run the unit tests
+    cmds:
+      - uv run pytest tests/unit
+
+  test:integration:
+    desc: Run the integration tests
+    cmds:
+      - uv run pytest tests/integration
+
+  test:
+    desc: Run the unit/integration test suite
+    cmds:
+      - task: test:unit
+      - task: test:integration
+
+  molecule:
+    desc: Run a molecule scenario (SCENARIO=firstboot by default)
+    cmds:
+      - uv run molecule test -s {{.SCENARIO}}
+
+  check:
+    desc: Run lint + test
+    cmds:
+      - task: lint
+      - task: test
