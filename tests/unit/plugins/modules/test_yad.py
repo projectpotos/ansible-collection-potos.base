@@ -18,9 +18,7 @@ import pytest
 # the collection being installed in ``ansible_collections.potos.base`` for
 # the unit test environment.
 _MODULE_PATH = Path(__file__).resolve().parents[4] / "plugins" / "modules" / "yad.py"
-_spec = importlib.util.spec_from_file_location(
-    "potos_base_yad_under_test", _MODULE_PATH
-)
+_spec = importlib.util.spec_from_file_location("potos_base_yad_under_test", _MODULE_PATH)
 assert _spec is not None and _spec.loader is not None
 yad = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(yad)
@@ -262,9 +260,7 @@ def test_validate_command_uses_exit_code(monkeypatch: pytest.MonkeyPatch) -> Non
     labels = ["Password"]
 
     assert yad._validate(spec, ["correct"], labels, {"PATH": "/usr/bin"}) is None
-    assert (
-        yad._validate(spec, ["wrong"], labels, {"PATH": "/usr/bin"}) == "bad passphrase"
-    )
+    assert yad._validate(spec, ["wrong"], labels, {"PATH": "/usr/bin"}) == "bad passphrase"
 
     # Field values must be exposed to the validation command via env vars.
     assert calls[0]["env"]["YAD_FIELD_0"] == "correct"

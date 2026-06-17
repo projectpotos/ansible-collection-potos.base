@@ -16,13 +16,21 @@ dev = [
     "docker~=7.1.0",
     "pytest-ansible",
     "pytest-xdist",
+    "ruff>=0.15.17",
 ]
 
 [tool.uv]
 package = false
 
-[tool.black]
+[tool.ruff]
 line-length = 100
+
+[tool.ruff.lint]
+extend-select = ["I"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["ansible_collections.potos.base"]
+lines-after-imports = 2
 
 [tool.pytest.ini_options]
 addopts = ["-vvv", "-n", "2", "--log-level", "WARNING", "--color", "yes"]

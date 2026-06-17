@@ -2,6 +2,15 @@
 
 extends: default
 
+ignore: |
+  .venv/
+  venv/
+  .ansible/
+  build/
+  changelogs/changelog.yaml
+  collections/
+  tests/output/
+
 rules:
   line-length: disable
   truthy: disable

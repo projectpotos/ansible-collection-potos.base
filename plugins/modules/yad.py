@@ -205,7 +205,7 @@ notes:
   - This module never reports C(changed=true); displaying a dialog is not a
     state mutation. Wrap subsequent state-changing tasks accordingly.
   - In check mode the dialog is not displayed and empty results are returned.
-  - The caller is responsible for setting C(no_log: true) on the task when
+  - The caller is responsible for setting C(no_log=true) on the task when
     the dialog collects secrets.
 requirements:
   - The C(yad) binary must be installed on the target host.
