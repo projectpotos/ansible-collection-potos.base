@@ -1,14 +1,21 @@
 ---
-
 version: 2
 updates:
-  # Maintain GitHub Action dependencies
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "daily"
-  # Maintain Python pip dependencies
+      interval: "weekly"
+    cooldown:
+      default-days: 7
   - package-ecosystem: "pip"
     directory: "/"
     schedule:
-      interval: "daily"
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+  - package-ecosystem: "uv"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
