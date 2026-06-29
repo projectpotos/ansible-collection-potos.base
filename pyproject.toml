@@ -16,7 +16,7 @@ dev = [
     "docker~=7.1.0",
     "pytest-ansible",
     "pytest-xdist",
-    "ruff>=0.15.17",
+    "ruff>=0.15.18",
     "pre-commit>=4.6.0",
 ]
 
