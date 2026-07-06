@@ -25,19 +25,19 @@ which requirements are needed.
 ## Included content
 
 <!--start collection content-->
-### Resolve_step_refs filter plugins
-Ansible filter plugin entry point.
-
-Name | Description
---- | ---
-projectpotos.base.resolve_step_refs|Render ``{{ steps.* }}`` and ``{{ ansible_facts.* }}`` refs in ``value``.
-
 ### Yad_password_validation filter plugins
 Ansible filter plugin entry point.
 
 Name | Description
 --- | ---
 projectpotos.base.yad_password_validation|Return yad validations enforcing ``policy`` on ``password_field``.
+
+### Resolve_step_refs filter plugins
+Ansible filter plugin entry point.
+
+Name | Description
+--- | ---
+projectpotos.base.resolve_step_refs|Render ``{{ steps.* }}`` and ``{{ ansible_facts.* }}`` refs in ``value``.
 
 ### Modules
 Name | Description

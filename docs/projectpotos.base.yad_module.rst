@@ -8,7 +8,7 @@ projectpotos.base.yad
 **Display a YAD (GTK) dialog and return the user's input**
 
 
-Version added: 1.0.0
+Version added: 0.1.0
 
 .. contents::
    :local:

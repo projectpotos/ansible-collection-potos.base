@@ -17,7 +17,7 @@ DOCUMENTATION = r"""
 ---
 module: yad
 short_description: Display a YAD (GTK) dialog and return the user's input
-version_added: "1.0.0"
+version_added: "0.1.0"
 description:
   - Wraps the C(yad) (Yet Another Dialog) command-line utility in a
     declarative, idempotent-friendly Ansible module.
