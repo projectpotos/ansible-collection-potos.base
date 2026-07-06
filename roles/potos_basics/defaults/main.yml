@@ -11,10 +11,27 @@ potos_basics_logdir: "/var/log/{{ potos_basics_client_name | lower }}"
 potos_basics_libexec_dir: /usr/libexec/potos
 potos_basics_inventory: "{{ potos_basics_workdir }}/{{ potos_basics_client_name | lower }}_inventory"
 
-# Files written by the installer / firstboot wizard, read to be consumed
+# Files written by the installer / firstboot wizard
 potos_basics_config_file: "{{ potos_basics_etc_dir }}/config.yml"
+
+# Specs-repo clone token. Two storage backends are supported (overridable from
+# /etc/potos/config.yml -> credentials.specs_token.*):
+#   file          plaintext file at potos_basics_specs_token_file (default).
+#   systemd-creds encrypted blob at potos_basics_specs_token_file, decrypted at
+#                 run time with `systemd-creds decrypt --name=<name>`.
+potos_basics_specs_token_backend: file
 potos_basics_specs_token_file: "{{ potos_basics_etc_dir }}/specs_token"
+potos_basics_specs_token_name: specs-token
+
+# Ansible-vault password source for the periodic runs. Backends (overridable
+# from /etc/potos/config.yml -> credentials.ansible_vault_key.*):
+#   none          do not pass a vault password file.
+#   file          plaintext file at potos_basics_ansible_vault_key_file; used
+#                 only if it exists (default, backwards compatible).
+#   systemd-creds encrypted blob, decrypted on the fly by potos-vault-pass.sh.
+potos_basics_ansible_vault_key_backend: file
 potos_basics_ansible_vault_key_file: "{{ potos_basics_etc_dir }}/ansible_vault_key"
+potos_basics_ansible_vault_key_name: ansible-vault-key
 
 # Specs repository config
 potos_basics_specs_url: ""
@@ -23,9 +40,7 @@ potos_basics_specs_clone_dir: "{{ potos_basics_state_dir }}/specs"
 
 # Per-clone galaxy dir. Collections / roles declared in
 # <specs>/requirements.yml are installed here on every run, so they get the
-# same wipe-and-reinstall treatment as the specs tree itself. The system
-# collections path (/usr/share/ansible/collections) is kept as a fallback so
-# potos.base itself stays resolvable.
+# same wipe-and-reinstall treatment as the specs tree itself.
 potos_basics_specs_galaxy_dir: "{{ potos_basics_specs_clone_dir }}/.galaxy"
 
 # Run types. Each entry with on_calendar gets a systemd timer.

@@ -9,23 +9,20 @@
     - potos_firstboot_precommands is not string
     - potos_firstboot_precommands is not mapping
 
-- name: Ensure YAD is installed
-  ansible.builtin.package:
-    name: yad
-    state: present
+- name: Load the firstboot step list from the system config
+  ansible.builtin.include_tasks: load_config.yml
 
-- name: Ask for hostname
-  ansible.builtin.include_tasks: 01_hostname.yml
-
-- name: Ask for local user
-  ansible.builtin.include_tasks: 02_user.yml
-
-- name: Change disk encryption passphrase
-  ansible.builtin.include_tasks: 03_luks.yml
-
-- name: Acquire specs repo credentials
-  ansible.builtin.include_tasks: 04_credentials.yml
-  when: potos_firstboot_credentials_source != 'none'
+- name: Run the configured firstboot steps via the step engine
+  ansible.builtin.include_role:
+    name: potos.base.potos_steps
+  vars:
+    potos_steps_list: "{{ potos_firstboot_step_list }}"
+    potos_steps_setup_dir: "{{ potos_firstboot_setup_dir }}"
+    potos_steps_logo: "{{ potos_firstboot_logo }}"
+    potos_steps_client_name: "{{ potos_firstboot_client_name }}"
+    potos_steps_ask_keyboardlayout: "{{ potos_firstboot_ask_keyboardlayout }}"
+    potos_steps_ask_select_keyboardlayout: "{{ potos_firstboot_ask_select_keyboardlayout }}"
+    potos_steps_debug_no_log: "{{ potos_firstboot_debug_no_log }}"
 
 - name: Run post-commands
   ansible.builtin.shell:

@@ -1,0 +1,65 @@
+---
+- name: Verify
+  hosts: instance
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Stat the credential file
+      ansible.builtin.stat:
+        path: /etc/potos/specs_token
+      register: openbao_token_file
+
+    - name: Read the credential file
+      ansible.builtin.slurp:
+        src: /etc/potos/specs_token
+      register: openbao_token_content
+
+    - name: openbao/read returned the field and it was written with mode 0400
+      ansible.builtin.assert:
+        that:
+          - openbao_token_file.stat.exists
+          - openbao_token_file.stat.mode == '0400'
+          - (openbao_token_content.content | ansible.builtin.b64decode) == 'specs-token-xyz'
+        fail_msg: >-
+          openbao/read -> file/write did not produce the expected credential
+          (mode {{ openbao_token_file.stat.mode | ansible.builtin.default('?') }}).
+
+    - name: Read the marker file written by the last step
+      ansible.builtin.slurp:
+        src: /var/lib/potos/openbao-marker.yml
+      register: openbao_marker
+
+    - name: Show content of the marker file for debugging
+      ansible.builtin.debug:
+        msg: "openbao-marker content: {{ openbao_marker.content | ansible.builtin.b64decode }}"
+
+    - name: Parse the marker file as YAML
+      ansible.builtin.set_fact:
+        openbao_marker_data: "{{ openbao_marker.content | ansible.builtin.b64decode | ansible.builtin.from_yaml }}"
+
+    - name: The whole KV data dict was written, not only one field
+      ansible.builtin.assert:
+        that:
+          - openbao_marker_data.user == 'potos'
+          - openbao_marker_data.token == 'specs-token-xyz'
+        fail_msg: >-
+          openbao/read did not expose the full data dict to later steps:
+          {{ openbao_marker_data }}
+
+    - name: Confirm the secret really landed on the server
+      potos.base.potos_openbao:
+        action: kv_get
+        url: http://potos-firstboot-openbao-server:8200
+        token: root
+        path: secret/potos/specs
+      register: openbao_server_check
+
+    - name: The server holds exactly what openbao/write wrote
+      ansible.builtin.assert:
+        that:
+          - openbao_server_check.data.token == 'specs-token-xyz'
+          - openbao_server_check.data.user == 'potos'
+        fail_msg: >-
+          The secret on the server did not match what openbao/write sent:
+          {{ openbao_server_check.data }}

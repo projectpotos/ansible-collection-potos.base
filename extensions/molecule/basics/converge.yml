@@ -1,0 +1,12 @@
+---
+- name: Converge
+  hosts: all
+  become: true
+  gather_facts: true
+  vars:
+    # Install the wrapper, units and timers but do not enable/start the timers
+    potos_basics_timer_activate: false
+  tasks:
+    - name: Run the basics role
+      ansible.builtin.include_role:
+        name: potos.base.potos_basics

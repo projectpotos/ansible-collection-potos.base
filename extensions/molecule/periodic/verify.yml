@@ -1,0 +1,26 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Stat the specs clone created by stage 1
+      ansible.builtin.stat:
+        path: /var/lib/potos/specs/runtime.yml
+      register: potos_specs_clone
+
+    - name: Stat the marker written by the dummy role in stage 2
+      ansible.builtin.stat:
+        path: /tmp/potos-apply-marker
+      register: potos_apply_marker
+
+    - name: Both periodic stages ran
+      ansible.builtin.assert:
+        that:
+          - potos_specs_clone.stat.exists
+          - potos_apply_marker.stat.exists
+        fail_msg: >-
+          periodic run incomplete: specs clone
+          exists={{ potos_specs_clone.stat.exists }},
+          apply marker exists={{ potos_apply_marker.stat.exists }}

@@ -1,0 +1,8 @@
+---
+galaxy_info:
+  role_name: potos_specs_dummy
+  author: molecule
+  description: Fixture specs role for the periodic scenario
+  license: MIT
+  min_ansible_version: "2.15"
+dependencies: []

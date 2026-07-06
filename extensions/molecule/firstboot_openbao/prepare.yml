@@ -1,0 +1,120 @@
+---
+- name: Prepare the firstboot test instance
+  hosts: instance
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Install role dependencies
+      ansible.builtin.package:
+        name:
+          - hostname
+          - util-linux
+          - python3-hvac
+        state: present
+
+    - name: Ensure /etc/potos exists
+      ansible.builtin.file:
+        path: /etc/potos
+        state: directory
+        mode: "0755"
+
+    - name: Provide a system config
+      ansible.builtin.copy:
+        dest: /etc/potos/config.yml
+        mode: "0644"
+        content: |
+          firstboot:
+            steps:
+              - id: bao_login
+                uses: openbao/login
+                input:
+                  install: true
+                  url: http://potos-firstboot-openbao-server:8200
+                  method: userpass
+                  mount: userpass
+                  browser: false
+                  notify: false
+                  prompt: false
+                  options:
+                    username: potos
+                    password: potos-pw
+              - id: bao_write
+                uses: openbao/write
+                input:
+                  url: http://potos-firstboot-openbao-server:8200
+                  token: "{% raw %}{{ steps.bao_login.token }}{% endraw %}"
+                  path: secret/potos/specs
+                  data:
+                    token: specs-token-xyz
+                    user: potos
+              - id: bao_read
+                uses: openbao/read
+                input:
+                  url: http://potos-firstboot-openbao-server:8200
+                  token: "{% raw %}{{ steps.bao_login.token }}{% endraw %}"
+                  path: secret/potos/specs
+                  field: token
+              - id: write_specs_token
+                uses: file/write
+                input:
+                  path: /etc/potos/specs_token
+                  mode: "0400"
+                  secret: true
+                  content: "{% raw %}{{ steps.bao_read.value }}{% endraw %}"
+              - id: marker
+                uses: file/write
+                input:
+                  path: /var/lib/potos/openbao-marker.yml
+                  mode: "0644"
+                  content: "{% raw %}{{ steps.bao_read.data | ansible.builtin.to_yaml }}{% endraw %}"
+
+- name: Configure the dedicated OpenBao server
+  hosts: instance
+  become: true
+  gather_facts: false
+
+  vars:
+    bao_server_url: http://potos-firstboot-openbao-server:8200
+    bao_root_token: root
+
+  module_defaults:
+    group/community.hashi_vault.vault:
+      url: "{{ bao_server_url }}"
+      token: "{{ bao_root_token }}"
+      auth_method: token
+
+  tasks:
+    - name: Wait for the OpenBao server to accept connections
+      ansible.builtin.wait_for:
+        host: potos-firstboot-openbao-server
+        port: 8200
+        timeout: 60
+
+    - name: Enable the userpass auth method
+      community.hashi_vault.vault_write:
+        path: sys/auth/userpass
+        data:
+          type: userpass
+      register: bao_userpass
+      until: bao_userpass is not failed
+      retries: 10
+      delay: 2
+
+    - name: Create a policy granting KV access under secret/potos
+      community.hashi_vault.vault_write:
+        path: sys/policies/acl/potos
+        data:
+          policy: |
+            path "secret/data/potos/*" {
+              capabilities = ["create", "read", "update"]
+            }
+            path "secret/metadata/potos/*" {
+              capabilities = ["list", "read"]
+            }
+
+    - name: Bind the user to the potos policy
+      community.hashi_vault.vault_write:
+        path: auth/userpass/users/potos
+        data:
+          password: potos-pw
+          token_policies: potos

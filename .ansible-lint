@@ -1,6 +1,7 @@
 ---
 skip_list:
   - name[casing]
+  - name[template]  # firstboot step tasks are prefixed with "{{ step.uses }} ({{ step.id }}): "
   - risky-shell-pipe
   - var-naming[no-role-prefix]
 

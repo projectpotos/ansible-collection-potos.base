@@ -1,13 +1,123 @@
 ---
 - name: Verify
   hosts: all
-  gather_facts: no
+  become: true
+  gather_facts: false
 
-  tasks: []
-#  - name: check if template has been applied
-#    ansible.builtin.stat:
-#      path: "/potos.example"
-#    register: out
-#    changed_when: false
-#    failed_when:
-#      - not out.stat.exists
+  tasks:
+    - name: Stat the keyboard-layout helper script
+      ansible.builtin.stat:
+        path: /var/lib/potos/setup/change-keyboard-layout.sh
+      register: potos_ckl_script
+
+    - name: The keyboard-layout helper script exists and is executable
+      ansible.builtin.assert:
+        that:
+          - potos_ckl_script.stat.exists
+          - potos_ckl_script.stat.executable
+        fail_msg: >-
+          {{ potos_firstboot_setup_dir | default('/var/lib/potos/setup') }}/change-keyboard-layout.sh
+          was not rendered or is not executable.
+
+    - name: yad is installed
+      ansible.builtin.command: command -v yad
+      changed_when: false
+
+    - name: Read the marker the file/write step produced
+      ansible.builtin.slurp:
+        src: /var/lib/potos/firstboot-step-marker
+      register: potos_step_marker
+
+    - name: The step framework wired the user steps' outputs into file/write
+      ansible.builtin.assert:
+        that:
+          - (potos_step_marker.content | b64decode) is search('pwuser=cyclops')
+          - (potos_step_marker.content | b64decode) is search('extra=gambit')
+        fail_msg: >-
+          The firstboot step framework did not wire user-step outputs into the
+          file/write step. Marker content:
+          {{ potos_step_marker.content | b64decode }}
+
+    - name: Read the generated admin password the rotate_password step produced
+      ansible.builtin.slurp:
+        src: /etc/potos/admin_pw
+      register: potos_admin_pw
+
+    - name: rotate_password generated a 24-char password and wired it to file/write
+      ansible.builtin.assert:
+        that:
+          - (potos_admin_pw.content | b64decode) | length == 24
+          - (potos_admin_pw.content | b64decode) is match('^[!-~]+$')
+        fail_msg: >-
+          user/rotate_password (generate) did not produce the expected password
+          output wired into file/write.
+
+    - name: Read cyclops's shadow entry
+      ansible.builtin.getent:
+        database: shadow
+        key: cyclops
+
+    - name: rotate_password actually set a hashed password for cyclops
+      ansible.builtin.assert:
+        that:
+          - getent_shadow['cyclops'][0] is match('^\$')
+        fail_msg: >-
+          cyclops's password was not set by user/rotate_password
+          (shadow field: {{ getent_shadow['cyclops'][0] | default('?') }}).
+
+    - name: Read storm's shadow entry
+      ansible.builtin.getent:
+        database: shadow
+        key: storm
+
+    - name: rotate_password set a hashed password
+      ansible.builtin.assert:
+        that:
+          - getent_shadow['storm'][0] is match('^\$')
+        fail_msg: >-
+          storm's password was not set by user/rotate_password
+          (shadow field: {{ getent_shadow['storm'][0] | default('?') }}).
+
+    - name: Read the additional user and its groups
+      ansible.builtin.command: id gambit
+      register: potos_extra_id
+      changed_when: false
+
+    - name: The additional user exists and is in the created group
+      ansible.builtin.assert:
+        that:
+          - "'potosadmins' in potos_extra_id.stdout"
+        fail_msg: "additional user 'gambit' missing or not in 'potosadmins': {{ potos_extra_id.stdout }}"
+
+    - name: Stat the credential file the script/run -> file/write flow produced
+      ansible.builtin.stat:
+        path: /etc/potos/specs_token
+      register: potos_token_file
+
+    - name: Read the credential file
+      ansible.builtin.slurp:
+        src: /etc/potos/specs_token
+      register: potos_token_content
+
+    - name: The credential was acquired, wired, and written with 0400
+      ansible.builtin.assert:
+        that:
+          - potos_token_file.stat.exists
+          - potos_token_file.stat.mode == '0400'
+          - (potos_token_content.content | b64decode) == 'specs-token-xyz'
+        fail_msg: >-
+          script/run -> file/write did not produce the expected credential file
+          (mode {{ potos_token_file.stat.mode | default('?') }}).
+
+    - name: Decrypt the systemd-creds blob to verify the round-trip
+      potos.base.potos_systemd_creds:
+        action: decrypt
+        name: testcred
+        input_path: /etc/potos/test.cred
+      register: potos_cred_decrypt
+
+    - name: systemd_creds/store produced a host-key blob that decrypts back
+      ansible.builtin.assert:
+        that:
+          - potos_cred_decrypt.plaintext == 'roundtrip-secret'
+        fail_msg: "systemd-creds host-key round-trip failed: {{ potos_cred_decrypt.plaintext | default('?') }}"

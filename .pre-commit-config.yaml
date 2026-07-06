@@ -1,9 +1,15 @@
 ---
 repos:
   - repo: https://github.com/ansible-network/collection_prep
-    rev: 1.1.1
+    rev: 1.1.2
     hooks:
       - id: update-docs
+        # collection_prep 1.1.2 breaks on ansible-core >= 2.19 (PosixPath
+        # rejected by the collection loader) and on Python 3.14 (removed
+        # ast.Constant.s), so pin both.
+        language_version: python3.12
+        additional_dependencies:
+          - ansible-core<2.19
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.4.0
@@ -27,8 +33,6 @@ repos:
           - prettier
           - prettier-plugin-toml
 
-  # ruff replaces isort + black + flake8 (and the magic trailing comma it
-  # enforces makes add-trailing-comma redundant).
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.15.17
     hooks:
@@ -36,10 +40,16 @@ repos:
         args: [--fix]
       - id: ruff-format
 
-  # yamllint and ansible-lint run through uv so they use the exact versions
-  # pinned in uv.lock (identical to `go-task lint` and CI).
   - repo: local
     hooks:
+      - id: uv-export-test-requirements
+        name: export test group to test-requirements.txt
+        entry: >-
+          uv export --frozen --only-group test --no-hashes --no-annotate
+          --prune ansible-core --quiet --output-file test-requirements.txt
+        language: system
+        files: ^(pyproject\.toml|uv\.lock|test-requirements\.txt)$
+        pass_filenames: false
       - id: yamllint
         name: yamllint
         entry: uv run yamllint

@@ -1,12 +1,11 @@
 ---
-- name: Potos first-boot
-  hosts: localhost
-  connection: local
+- name: Potos firstboot Magier
+  hosts: all
   become: true
   gather_facts: true
 
   pre_tasks:
-    - name: Skip when firstboot has already completed
+    - name: Check if firstboot ran already
       ansible.builtin.stat:
         path: /var/lib/potos/firstboot.done
       register: potos_firstboot_marker

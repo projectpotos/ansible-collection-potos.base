@@ -12,14 +12,6 @@ This module provides a declarative, testable interface around ``yad``
 
 from __future__ import annotations
 
-import os
-import re
-import shlex
-import subprocess
-from typing import Any
-
-from ansible.module_utils.basic import AnsibleModule
-
 
 DOCUMENTATION = r"""
 ---
@@ -120,18 +112,40 @@ options:
     description:
       - Buttons displayed at the bottom of the dialog.
       - When omitted, YAD's default OK/Cancel buttons are used.
-      - Use C(action) to bind a button to a shell command that is launched
-        when the button is pressed (see C(yad)'s C(--button) syntax).
+      - 'A C(yad) button is C(LABEL:ID): a numeric O(buttons[].id) is the exit
+        code returned when the button is pressed (which closes the dialog),
+        while a non-numeric O(buttons[].action) is a shell command run when the
+        button is pressed (which does not close the dialog).'
+      - O(buttons[].id) and O(buttons[].action) are mutually exclusive.
+      - For O(dialog=form) and O(dialog=list) the button that submits the
+        result must use an B(even) exit code; C(yad) only prints the collected
+        values on an even exit status (an odd code just returns the code).
     type: list
     elements: dict
     suboptions:
       label:
-        description: Button label (may use a C(gtk-) stock id, e.g. C(gtk-ok)).
+        description:
+          - Button label, e.g. C(OK).
+          - C(yad) also accepts GTK stock ids such as C(gtk-ok), but these rely
+            on GTK stock-item support, which is deprecated since GTK 3.10 and
+            absent on many current builds. When it is missing C(yad) cannot
+            resolve the id and shows the raw text (e.g. C(gtk-ok)) on the
+            button, so prefer a plain text label.
         type: str
         required: true
       action:
-        description: Optional shell command executed when the button is pressed.
+        description:
+          - Shell command executed when the button is pressed. A command button
+            does not close the dialog.
+          - Mutually exclusive with O(buttons[].id).
         type: str
+      id:
+        description:
+          - Explicit exit code returned when the button is pressed (this closes
+            the dialog). Use an even value for the submit button of form/list
+            dialogs so C(yad) prints the result.
+          - Mutually exclusive with O(buttons[].action).
+        type: int
   separator:
     description: Field separator used by C(yad) to delimit field values.
     type: str
@@ -235,7 +249,8 @@ EXAMPLES = r"""
         pattern: '^[a-z0-9][a-z0-9-]{0,62}$'
         error_message: "Hostname is invalid!"
     buttons:
-      - label: gtk-ok
+      - label: OK
+        id: 0
       - label: Change keyboard layout
         action: /setup/change-keyboard-layout.sh
   register: hostname_dialog
@@ -297,10 +312,10 @@ value:
   description:
     - Single user-supplied value for O(dialog=entry), O(dialog=list) or
       single-field forms.
-    - Equal to the only entry of RV(values).
+    - Equal to the only entry of RV(raw_values).
   type: str
   returned: when a value was collected
-values:
+raw_values:
   description: Ordered list of raw values returned by C(yad).
   type: list
   elements: str
@@ -326,6 +341,17 @@ cmd:
   returned: always
 """
 
+import os
+import re
+import shlex
+import subprocess
+from typing import Any
+
+from ansible.module_utils.basic import AnsibleModule
+
+
+DEFAULT_OK_LABEL = "OK"
+
 
 class YadError(Exception):
     """Raised for unrecoverable errors while running yad."""
@@ -341,6 +367,9 @@ def _run_yad(
     Isolated in its own helper so unit tests can monkey-patch it and
     deterministically simulate user input without a real X server.
     """
+    # No AnsibleModule here on purpose: tests monkey-patch this helper, and the
+    # dialog needs a custom environment (DISPLAY), which run_command lacks.
+    # pylint: disable-next=ansible-bad-function
     proc = subprocess.run(  # noqa: S603 - argv is constructed from validated params
         argv,
         env=env,
@@ -377,15 +406,28 @@ def _build_window_args(params: dict[str, Any]) -> list[str]:
 
 
 def _build_button_args(buttons: list[dict[str, Any]] | None) -> list[str]:
-    """Translate the ``buttons`` list to ``--button`` flags."""
+    """Translate the ``buttons`` list to ``--button`` flags.
+
+    A ``yad`` button is ``LABEL:ID``. ``id`` (numeric) is the exit code
+    returned when the button closes the dialog; ``action`` (non-numeric) is a
+    command run on press that leaves the dialog open. The two are mutually
+    exclusive; a button with neither relies on ``yad``'s positional exit code.
+    """
     if not buttons:
         return []
     args: list[str] = []
     for btn in buttons:
         label = btn["label"]
         action = btn.get("action")
+        button_id = btn.get("id")
+        if action and button_id is not None:
+            raise YadError(
+                f"button {label!r} sets both 'action' and 'id'; they are mutually exclusive",
+            )
         if action:
             args += ["--button", f"{label}:{action}"]
+        elif button_id is not None:
+            args += ["--button", f"{label}:{button_id}"]
         else:
             args += ["--button", label]
     return args
@@ -526,12 +568,15 @@ def _validate(
             command = spec.get("command")
             if not command:
                 raise YadError("command validation requires 'command'")
-            _, stdin_value = (
+            _idx, stdin_value = (
                 _resolve_field(spec["field"], values, labels)
                 if spec.get("field") is not None
                 else (None, None)
             )
             env = _env_for_validation(values, labels, base_env)
+            # Validation commands need the field values exposed via a custom
+            # environment, which run_command cannot provide.
+            # pylint: disable-next=ansible-bad-function
             proc = subprocess.run(  # noqa: S602 - explicit shell requested by caller
                 command,
                 shell=True,
@@ -565,7 +610,7 @@ def _show_error(
             argv.append("--image-on-top")
     if module_params.get("borders") is not None:
         argv += ["--borders", str(module_params["borders"])]
-    argv += ["--button", "gtk-ok", "--text", message]
+    argv += ["--button", DEFAULT_OK_LABEL, "--text", message]
     _run_yad(argv, env=env)
 
 
@@ -613,7 +658,7 @@ def _build_argv(params: dict[str, Any]) -> tuple[list[str], list[str], list[str]
         # No input widget - just show text. Default to --info if the user
         # did not supply custom buttons.
         if not params.get("buttons"):
-            argv += ["--button", "gtk-ok"]
+            argv += ["--button", DEFAULT_OK_LABEL]
 
     if params.get("extra_args"):
         argv += list(params["extra_args"])
@@ -638,7 +683,7 @@ def _run_with_validation(
 
     while True:
         attempts += 1
-        rc, stdout, _ = _run_yad(argv, env=env)
+        rc, stdout, _stderr = _run_yad(argv, env=env)
         if rc != 0:
             # Cancelled / closed: stop retrying.
             cancelled = True
@@ -666,7 +711,7 @@ def _run_with_validation(
 
     result: dict[str, Any] = {
         "changed": False,
-        "values": last_values,
+        "raw_values": last_values,
         "cancelled": cancelled,
         "attempts": attempts,
         "cmd": argv,
@@ -729,7 +774,9 @@ def main() -> None:
             "options": {
                 "label": {"type": "str", "required": True},
                 "action": {"type": "str"},
+                "id": {"type": "int"},
             },
+            "mutually_exclusive": [["action", "id"]],
         },
         "separator": {"type": "str", "default": "|"},
         "validations": {
@@ -771,7 +818,7 @@ def main() -> None:
     if module.check_mode:
         module.exit_json(
             changed=False,
-            values=[],
+            raw_values=[],
             cancelled=False,
             attempts=0,
             cmd=[],

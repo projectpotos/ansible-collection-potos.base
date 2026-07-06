@@ -1,7 +1,6 @@
 ---
 - name: Potos periodic run - stage 1 (prepare / specs sync)
-  hosts: localhost
-  connection: local
+  hosts: all
   become: true
   gather_facts: true
 
@@ -19,19 +18,42 @@
       ansible.builtin.meta: end_play
       when: potos_basics_specs_url | length == 0
 
-    - name: Read specs-repo token if present
+    # The clone token can be stored as a plaintext file (backend: file) or as a
+    # systemd-creds encrypted blob (backend: systemd-creds)
+    - name: Read specs-repo token from a plaintext file (file backend)
       ansible.builtin.slurp:
         src: "{{ potos_basics_specs_token_file }}"
-      register: potos_basics_specs_token
-      when: potos_basics_specs_token_file is file
+      register: potos_basics_specs_token_slurp
+      when:
+        - potos_basics_specs_token_backend == 'file'
+        - potos_basics_specs_token_file is file
+      no_log: true
+
+    - name: Decrypt specs-repo token from a systemd-creds blob (systemd-creds backend)
+      potos.base.potos_systemd_creds:
+        action: decrypt
+        name: "{{ potos_basics_specs_token_name }}"
+        input_path: "{{ potos_basics_specs_token_file }}"
+      register: potos_basics_specs_token_creds
+      when:
+        - potos_basics_specs_token_backend == 'systemd-creds'
+        - potos_basics_specs_token_file is file
+      no_log: true
+
+    - name: Resolve the effective specs token
+      ansible.builtin.set_fact:
+        potos_basics_specs_token_value: >-
+          {{ (potos_basics_specs_token_slurp.content | b64decode)
+             if (potos_basics_specs_token_slurp.content is defined)
+             else (potos_basics_specs_token_creds.plaintext | default('')) }}
       no_log: true
 
     - name: Build authenticated specs URL
       ansible.builtin.set_fact:
         potos_basics_specs_effective_url: >-
-          {%- if potos_basics_specs_token.content is defined and
+          {%- if potos_basics_specs_token_value | length > 0 and
                  potos_basics_specs_url.startswith(('http://', 'https://')) -%}
-          {%- set _token = potos_basics_specs_token.content | trim -%}
+          {%- set _token = potos_basics_specs_token_value | trim -%}
           {%- set _split = potos_basics_specs_url.split('://', 1) -%}
           {{ _split[0] }}://x-access-token:{{ _token | urlencode }}@{{ _split[1] }}
           {%- else -%}
@@ -69,7 +91,7 @@
       when: potos_basics_specs_requirements.stat.exists
       changed_when: true
 
-    - name: Install specs roles into a per-clone galaxy dir
+    - name: Install specs roles
       ansible.builtin.command:
         cmd: >-
           {{ potos_basics_virtenvdir }}/bin/ansible-galaxy role install

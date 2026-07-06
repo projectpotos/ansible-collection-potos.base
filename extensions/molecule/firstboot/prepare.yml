@@ -1,18 +1,109 @@
 ---
 - name: Prepare
   hosts: all
-  gather_facts: yes
-
+  become: true
+  gather_facts: false
   tasks:
-    # Update the apt cache as it's potentialy outdated in the container
-    - name: update apt
-      ansible.builtin.shell: # noqa: command-instead-of-module
-        cmd: "apt-get update && apt-get upgrade -y"
-      when: ansible_distribution == 'Ubuntu'
-    - name: install gnome
-      ansible.builtin.apt:
-        name: "{{ item }}"
+    - name: Install role dependencies
+      ansible.builtin.package:
+        name:
+          - hostname
+          - util-linux
+          - shadow-utils
         state: present
+
+    - name: Create accounts for the user/rotate_password step
+      ansible.builtin.user:
+        name: "{{ item.name }}"
+        uid: "{{ item.uid }}"
+        shell: /bin/bash
+        create_home: true
       loop:
-        - "gnome-session"
-        - "gdm3"
+        - { name: cyclops, uid: 4242 }
+        - { name: storm, uid: 4243 }
+      loop_control:
+        label: "{{ item.name }}"
+
+    - name: Install a fake credential helper for the script/run step
+      ansible.builtin.copy:
+        dest: /usr/local/bin/fake-cred.sh
+        mode: "0755"
+        content: |
+          #!/bin/sh
+          echo "specs-token-xyz"
+
+    - name: Ensure /etc/potos exists
+      ansible.builtin.file:
+        path: /etc/potos
+        state: directory
+        mode: "0755"
+
+    - name: Provide a system config with a firstboot step list
+      ansible.builtin.copy:
+        dest: /etc/potos/config.yml
+        mode: "0644"
+        content: |
+          debug:
+            no_log: false
+            verbosity: 0
+          firstboot:
+            steps:
+              - id: set_hostname
+                uses: hostname/change
+                input:
+                  ask: false
+              - id: rotate_admin_pw
+                uses: user/rotate_password
+                input:
+                  ask: false
+                  username: cyclops
+                  generate: true
+                  length: 24
+              - id: write_admin_pw
+                uses: file/write
+                input:
+                  path: /etc/potos/admin_pw
+                  mode: "0400"
+                  secret: true
+                  content: "{% raw %}{{ steps.rotate_admin_pw.password }}{% endraw %}"
+              - id: rotate_preset_pw
+                uses: user/rotate_password
+                input:
+                  ask: false
+                  username: storm
+                  password: "preset-pw-9!"
+              - id: extra_user
+                uses: user/create
+                input:
+                  ask: false
+                  username: gambit
+                  password: "extra-pw-456"
+                  groups: [potosadmins]
+              - id: get_token
+                uses: script/run
+                input:
+                  command: /usr/local/bin/fake-cred.sh
+                  secret: true
+              - id: write_token
+                uses: file/write
+                input:
+                  path: /etc/potos/specs_token
+                  mode: "0400"
+                  secret: true
+                  content: "{% raw %}{{ steps.get_token.stdout }}{% endraw %}"
+              - id: store_secret
+                uses: systemd_creds/store
+                input:
+                  secret: roundtrip-secret
+                  name: testcred
+                  path: /etc/potos/test.cred
+                  with_key: host
+              - id: marker
+                uses: file/write
+                input:
+                  path: /var/lib/potos/firstboot-step-marker
+                  mode: "0644"
+                  content: >-
+                    host={% raw %}{{ steps.set_hostname.hostname }}{% endraw %}
+                    pwuser={% raw %}{{ steps.rotate_admin_pw.username }}{% endraw %}
+                    extra={% raw %}{{ steps.extra_user.username }}{% endraw %}

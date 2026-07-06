@@ -12,6 +12,7 @@ potos_basics_packages:
   - python3-virtualenv
   - NetworkManager
   - gawk
+  - yq
 
-# Pin ansible-core inside the virtualenv. Override per host if needed.
+# Pin ansible-core inside the virtualenv.
 potos_basics_ansible_version: "2.20.6"

@@ -1,0 +1,4 @@
+---
+# Test-only collection dependencies
+collections:
+  - name: community.hashi_vault

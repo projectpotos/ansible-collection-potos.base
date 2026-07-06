@@ -1,0 +1,45 @@
+---
+# Category: group / Step: add_user
+# Add a user to one or more groups.
+#
+# inputs:
+#   username  str   required. The user to add to the groups.
+#   groups    list  required. Groups to add the user to.
+#   append    bool  default true. When true, groups are added to the user's
+#                   existing memberships. When false, the user's groups are
+#                   replaced with exactly 'groups'.
+# outputs:
+#   username  str  the user that was modified
+
+- name: "{{ step.uses }} ({{ step.id }}): Apply input defaults"
+  ansible.builtin.set_fact:
+    step_input: "{{ step_defaults | combine(step_input) }}"
+  vars:
+    step_defaults:
+      append: true
+
+- name: "{{ step.uses }} ({{ step.id }}): Validate username"
+  ansible.builtin.assert:
+    that:
+      - step_input.username | default('') | length > 0
+    fail_msg: "group/add_user requires a 'username' input."
+    quiet: true
+
+- name: "{{ step.uses }} ({{ step.id }}): Validate groups"
+  ansible.builtin.assert:
+    that:
+      - step_input.groups | default([]) | length > 0
+    fail_msg: "group/add_user requires a non-empty 'groups' input."
+    quiet: true
+
+- name: "{{ step.uses }} ({{ step.id }}): Add user to groups"
+  ansible.builtin.user:
+    name: "{{ step_input.username }}"
+    groups: "{{ step_input.groups }}"
+    append: "{{ step_input.append }}"
+
+- name: "{{ step.uses }} ({{ step.id }}): Register outputs"
+  ansible.builtin.include_tasks: steps/_register.yml
+  vars:
+    step_output:
+      username: "{{ step_input.username }}"
