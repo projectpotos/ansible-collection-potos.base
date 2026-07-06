@@ -1,0 +1,169 @@
+---
+# Category: user / Step: create
+# Create a local user.
+#
+# inputs:
+#   ask              bool  default true. Ask for the username (+ password).
+#   generate         bool  default false. Generate a random password instead of
+#                          asking or using a preset.
+#   username         str   required when ask=false. The login name.
+#   password         str   required when ask=false and generate=false.
+#   length           int   default 32. Generated password length.
+#   groups           list  default []. Groups the user joins; each group is
+#                          created if it does not already exist.
+#   shell            str   default /bin/bash. Login shell.
+#   create_home      bool  default true.
+#   system           bool  default false. Create a system account.
+#   password_policy  dict  optional. See yad_password_validation.
+# outputs:
+#   username  str  the created login name
+#   password  str  the password that was set (secret)
+
+- name: "{{ step.uses }} ({{ step.id }}): Apply input defaults"
+  ansible.builtin.set_fact:
+    step_input: "{{ step_defaults | combine(step_input) }}"
+  vars:
+    step_defaults:
+      ask: true
+      generate: false
+      length: 32
+      groups: []
+      shell: /bin/bash
+      create_home: true
+      system: false
+      password_policy: {}
+  no_log: "{{ not potos_steps_debug_no_log }}"
+
+- name: "{{ step.uses }} ({{ step.id }}): Validate the username"
+  ansible.builtin.assert:
+    that:
+      - step_input.username | default('') | length > 0
+    fail_msg: "user/create with ask=false requires a 'username' input."
+    quiet: true
+  when: not (step_input.ask | bool)
+
+- name: "{{ step.uses }} ({{ step.id }}): Validate the password"
+  ansible.builtin.assert:
+    that:
+      - step_input.password | default('') | length > 0
+    fail_msg: "user/create requires a 'password' input when ask=false and generate=false."
+    quiet: true
+  when:
+    - not (step_input.ask | bool)
+    - not (step_input.generate | bool)
+
+- name: "{{ step.uses }} ({{ step.id }}): Ask for the new user's username and password"
+  potos.base.yad:
+    dialog: form
+    title: "{{ potos_steps_client_name }} Setup"
+    text: |
+      IMPORTANT: If your password contains special characters, please remember
+      to select the appropriate keyboard layout first.
+
+      Please enter the credentials for the new user below.
+    fullscreen: true
+    borders: 20
+    align: center
+    image: "{{ potos_steps_logo }}"
+    image_on_top: true
+    fields:
+      - label: Username
+      - label: Password
+        type: H
+      - label: Confirm password
+        type: H
+    buttons:
+      - label: OK
+        id: 0
+      - label: Change keyboard layout
+        action: "{{ potos_steps_setup_dir }}/change-keyboard-layout.sh"
+    validations: >-
+      {{ [{'type': 'required', 'field': 'Username',
+           'error_message': 'Please choose a username.'}]
+         + (step_input.password_policy
+            | potos.base.yad_password_validation('Password', 'Confirm password')) }}
+    max_attempts: 0
+  register: user_create_dialog
+  no_log: "{{ not potos_steps_debug_no_log }}"
+  when:
+    - step_input.ask | bool
+    - not (step_input.generate | bool)
+  tags:
+    - molecule-notest
+
+- name: "{{ step.uses }} ({{ step.id }}): Ask for the new user's username (if password is generated)"
+  potos.base.yad:
+    dialog: form
+    title: "{{ potos_steps_client_name }} Setup"
+    text: |
+      Please enter the username for the new user below. A random
+      password will be generated for this account.
+    fullscreen: true
+    borders: 20
+    align: center
+    image: "{{ potos_steps_logo }}"
+    image_on_top: true
+    fields:
+      - label: Username
+    buttons:
+      - label: OK
+        id: 0
+    validations: >-
+      {{ [{'type': 'required', 'field': 'Username',
+           'error_message': 'Please choose a username.'}] }}
+    max_attempts: 0
+  register: user_create_username_dialog
+  no_log: "{{ not potos_steps_debug_no_log }}"
+  when:
+    - step_input.ask | bool
+    - step_input.generate | bool
+  tags:
+    - molecule-notest
+
+- name: "{{ step.uses }} ({{ step.id }}): Resolve the username"
+  ansible.builtin.set_fact:
+    user_create_name: >-
+      {{ (user_create_username_dialog.fields['Username']
+            if (step_input.generate | bool)
+            else user_create_dialog.fields['Username'])
+         if (step_input.ask | bool) else step_input.username }}
+  no_log: "{{ not potos_steps_debug_no_log }}"
+
+- name: "{{ step.uses }} ({{ step.id }}): Resolve the entered or preset password (when not generating)"
+  ansible.builtin.set_fact:
+    user_create_password: >-
+      {{ user_create_dialog.fields['Password']
+         if (step_input.ask | bool) else step_input.password }}
+  no_log: "{{ not potos_steps_debug_no_log }}"
+  when: not (step_input.generate | bool)
+
+- name: "{{ step.uses }} ({{ step.id }}): Ensure groups exist"
+  ansible.builtin.group:
+    name: "{{ item }}"
+  loop: "{{ step_input.groups }}"
+
+- name: "{{ step.uses }} ({{ step.id }}): Create the user"
+  ansible.builtin.user:
+    name: "{{ user_create_name }}"
+    groups: "{{ step_input.groups }}"
+    append: false
+    shell: "{{ step_input.shell }}"
+    create_home: "{{ step_input.create_home }}"
+    system: "{{ step_input.system }}"
+
+- name: "{{ step.uses }} ({{ step.id }}): Set (or generate) the user's password"
+  potos.base.potos_set_password:
+    name: "{{ user_create_name }}"
+    password: "{{ user_create_password | default(omit) }}"
+    generate: "{{ (step_input.generate | bool) | ternary(true, omit) }}"
+    length: "{{ step_input.length }}"
+  register: user_create_password_result
+  no_log: "{{ not potos_steps_debug_no_log }}"
+
+- name: "{{ step.uses }} ({{ step.id }}): Register outputs"
+  ansible.builtin.include_tasks: steps/_register.yml
+  vars:
+    step_output:
+      username: "{{ user_create_name }}"
+      password: "{{ user_create_password_result.password }}"
+    step_output_secret: true

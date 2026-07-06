@@ -1,0 +1,9 @@
+---
+- name: Converge
+  hosts: instance
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Run the firstboot role
+      ansible.builtin.include_role:
+        name: potos.base.potos_firstboot

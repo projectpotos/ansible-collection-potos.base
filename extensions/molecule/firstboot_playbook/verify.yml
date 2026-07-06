@@ -1,0 +1,26 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Stat the firstboot done marker
+      ansible.builtin.stat:
+        path: /var/lib/potos/firstboot.done
+      register: potos_done_marker
+
+    - name: Stat the autostart entry that should have been removed
+      ansible.builtin.stat:
+        path: /etc/xdg/autostart/potos-firstboot.desktop
+      register: potos_autostart
+
+    - name: The playbook completed
+      ansible.builtin.assert:
+        that:
+          - potos_done_marker.stat.exists
+          - not potos_autostart.stat.exists
+        fail_msg: >-
+          firstboot playbook did not complete: marker
+          exists={{ potos_done_marker.stat.exists }},
+          autostart present={{ potos_autostart.stat.exists }}

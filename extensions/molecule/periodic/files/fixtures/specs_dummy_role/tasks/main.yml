@@ -1,0 +1,6 @@
+---
+- name: Mark that the apply stage ran the specs role
+  ansible.builtin.copy:
+    dest: /tmp/potos-apply-marker
+    content: "applied\n"
+    mode: "0644"

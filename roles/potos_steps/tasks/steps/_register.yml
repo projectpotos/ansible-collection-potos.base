@@ -1,0 +1,15 @@
+---
+# A step includes this to publish its outputs so later
+# steps can reference them as {{ steps.<id>.<field> }}.
+
+- name: "{{ step.uses }} ({{ step.id }}): Register outputs in the registry"
+  ansible.builtin.set_fact:
+    potos_steps_registry: >-
+      {{ potos_steps_registry | default({}, true)
+         | combine({step.id: step_output}) }}
+  no_log: "{{ (step_output_secret | default(false) | bool) and not potos_steps_debug_no_log }}"
+
+- name: "{{ step.uses }} ({{ step.id }}): Expose 'steps' alias after registering outputs"
+  ansible.builtin.set_fact:
+    steps: "{{ potos_steps_registry }}"
+  no_log: "{{ (step_output_secret | default(false) | bool) and not potos_steps_debug_no_log }}"

@@ -12,17 +12,6 @@ This module provides a declarative, testable interface around ``yad``
 
 from __future__ import annotations
 
-import os
-import re
-import shlex
-import subprocess
-from typing import Any
-
-from ansible.module_utils.basic import AnsibleModule
-
-
-DEFAULT_OK_LABEL = "OK"
-
 
 DOCUMENTATION = r"""
 ---
@@ -323,10 +312,10 @@ value:
   description:
     - Single user-supplied value for O(dialog=entry), O(dialog=list) or
       single-field forms.
-    - Equal to the only entry of RV(values).
+    - Equal to the only entry of RV(raw_values).
   type: str
   returned: when a value was collected
-values:
+raw_values:
   description: Ordered list of raw values returned by C(yad).
   type: list
   elements: str
@@ -352,6 +341,17 @@ cmd:
   returned: always
 """
 
+import os
+import re
+import shlex
+import subprocess
+from typing import Any
+
+from ansible.module_utils.basic import AnsibleModule
+
+
+DEFAULT_OK_LABEL = "OK"
+
 
 class YadError(Exception):
     """Raised for unrecoverable errors while running yad."""
@@ -367,6 +367,9 @@ def _run_yad(
     Isolated in its own helper so unit tests can monkey-patch it and
     deterministically simulate user input without a real X server.
     """
+    # No AnsibleModule here on purpose: tests monkey-patch this helper, and the
+    # dialog needs a custom environment (DISPLAY), which run_command lacks.
+    # pylint: disable-next=ansible-bad-function
     proc = subprocess.run(  # noqa: S603 - argv is constructed from validated params
         argv,
         env=env,
@@ -565,12 +568,15 @@ def _validate(
             command = spec.get("command")
             if not command:
                 raise YadError("command validation requires 'command'")
-            _, stdin_value = (
+            _idx, stdin_value = (
                 _resolve_field(spec["field"], values, labels)
                 if spec.get("field") is not None
                 else (None, None)
             )
             env = _env_for_validation(values, labels, base_env)
+            # Validation commands need the field values exposed via a custom
+            # environment, which run_command cannot provide.
+            # pylint: disable-next=ansible-bad-function
             proc = subprocess.run(  # noqa: S602 - explicit shell requested by caller
                 command,
                 shell=True,
@@ -677,7 +683,7 @@ def _run_with_validation(
 
     while True:
         attempts += 1
-        rc, stdout, _ = _run_yad(argv, env=env)
+        rc, stdout, _stderr = _run_yad(argv, env=env)
         if rc != 0:
             # Cancelled / closed: stop retrying.
             cancelled = True
@@ -705,7 +711,7 @@ def _run_with_validation(
 
     result: dict[str, Any] = {
         "changed": False,
-        "values": last_values,
+        "raw_values": last_values,
         "cancelled": cancelled,
         "attempts": attempts,
         "cmd": argv,
@@ -812,7 +818,7 @@ def main() -> None:
     if module.check_mode:
         module.exit_json(
             changed=False,
-            values=[],
+            raw_values=[],
             cancelled=False,
             attempts=0,
             cmd=[],

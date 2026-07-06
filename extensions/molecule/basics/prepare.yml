@@ -1,0 +1,34 @@
+---
+- name: Prepare
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Install role dependencies
+      ansible.builtin.package:
+        name:
+          - hostname
+          - util-linux
+          - logrotate
+        state: present
+
+    - name: Ensure /etc/potos exists
+      ansible.builtin.file:
+        path: /etc/potos
+        state: directory
+        mode: "0755"
+
+    - name: Write the system config
+      ansible.builtin.copy:
+        dest: /etc/potos/config.yml
+        mode: "0644"
+        content: |
+          ---
+          client_name:
+            short: potos
+            long: Potos Linux
+          specs:
+            url: /opt/potos-specs-src
+            branch: main
+          role_vars: {}
+          firstboot_extra_roles: []

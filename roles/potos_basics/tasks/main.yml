@@ -2,11 +2,6 @@
 - name: Load merged base configuration
   ansible.builtin.import_tasks: load_config.yml
 
-# - name: Check if an ansible-vault key is present
-#   ansible.builtin.stat:
-#     path: "{{ potos_basics_ansible_vault_key_file }}"
-#   register: potos_basics_ansible_vault_key_check
-
 - name: Install required packages
   ansible.builtin.package:
     name: "{{ potos_basics_packages }}"

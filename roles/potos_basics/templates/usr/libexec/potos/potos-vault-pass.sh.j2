@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# {{ ansible_managed }}
+#
+set -eu
+
+: "${POTOS_VAULT_CRED_PATH:?POTOS_VAULT_CRED_PATH is not set}"
+: "${POTOS_VAULT_CRED_NAME:?POTOS_VAULT_CRED_NAME is not set}"
+
+exec systemd-creds decrypt \
+  --name="${POTOS_VAULT_CRED_NAME}" \
+  "${POTOS_VAULT_CRED_PATH}" -

@@ -34,12 +34,26 @@ argument_specs:
       potos_basics_config_file:
         type: str
         default: /etc/potos/config.yml
+      potos_basics_specs_token_backend:
+        type: str
+        default: file
+        choices: [file, systemd-creds]
       potos_basics_specs_token_file:
         type: str
         default: /etc/potos/specs_token
+      potos_basics_specs_token_name:
+        type: str
+        default: specs-token
+      potos_basics_ansible_vault_key_backend:
+        type: str
+        default: file
+        choices: [none, file, systemd-creds]
       potos_basics_ansible_vault_key_file:
         type: str
         default: /etc/potos/ansible_vault_key
+      potos_basics_ansible_vault_key_name:
+        type: str
+        default: ansible-vault-key
       potos_basics_specs_url:
         type: str
         default: ""

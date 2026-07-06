@@ -1,0 +1,48 @@
+---
+- name: Converge
+  hosts: all
+  become: true
+  gather_facts: true
+
+  vars:
+    potos_basics_timer_activate: false
+
+    box_venv: /var/lib/potos/virtenv
+    box_inventory: /var/lib/potos/ansible/potos_inventory
+    specs_dir: /var/lib/potos/specs
+    specs_galaxy: /var/lib/potos/specs/.galaxy
+    system_collections: /usr/share/ansible/collections
+
+  tasks:
+    - name: Call the potos_basics role to ensure potos is installed
+      ansible.builtin.include_role:
+        name: potos.base.potos_basics
+
+    - name: Periodic stage 1 (prepare)
+      ansible.builtin.command:
+        argv:
+          - "{{ box_venv }}/bin/ansible-playbook"
+          - -i
+          - "{{ box_inventory }}"
+          - -e
+          - potos_runtype=daily
+          - potos.base.prepare
+      environment:
+        ANSIBLE_COLLECTIONS_PATH: "{{ system_collections }}"
+      changed_when: true
+
+    - name: Periodic stage 2 (apply)
+      ansible.builtin.command:
+        argv:
+          - "{{ box_venv }}/bin/ansible-playbook"
+          - -i
+          - "{{ box_inventory }}"
+          - -e
+          - potos_runtype=daily
+          - -e
+          - "potos_specs_dir={{ specs_dir }}"
+          - potos.base.apply
+      environment:
+        ANSIBLE_COLLECTIONS_PATH: "{{ specs_galaxy }}/collections:{{ system_collections }}"
+        ANSIBLE_ROLES_PATH: "{{ specs_galaxy }}/roles"
+      changed_when: true

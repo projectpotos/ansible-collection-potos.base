@@ -1,0 +1,63 @@
+---
+# Category: systemd_creds / Step: store
+# Encrypt a secret with systemd-creds and write the blob to disk.
+#
+# inputs:
+#   secret                str   required. Plaintext to encrypt.
+#   name                  str   required. Credential name.
+#   path                  str   required. Output blob path.
+#   with_key              str   default auto. host | tpm2 | host+tpm2 | auto | ...
+#   tpm2_pcrs             list  default []. Extra literal PCRs to bind to.
+#   tpm2_public_key       str   optional. PEM for the signed PCR-11 policy
+#                               (e.g. /etc/secureboot/pcr.pub.pem).
+#   tpm2_public_key_pcrs  list  default [11]. PCRs the signature covers.
+#   mode/owner/group            blob file permissions (default 0600 root:root).
+# outputs:
+#   path  str  the blob path written
+
+- name: "{{ step.uses }} ({{ step.id }}): Apply input defaults"
+  ansible.builtin.set_fact:
+    step_input: "{{ step_defaults | combine(step_input) }}"
+  vars:
+    step_defaults:
+      with_key: auto
+      tpm2_pcrs: []
+      tpm2_public_key_pcrs: ["11"]
+      mode: "0600"
+      owner: root
+      group: root
+  no_log: "{{ not potos_steps_debug_no_log }}"
+
+- name: "{{ step.uses }} ({{ step.id }}): Validate required inputs"
+  ansible.builtin.assert:
+    that:
+      - step_input.secret | default('') | length > 0
+      - step_input.name | default('') | length > 0
+      - step_input.path | default('') | length > 0
+    fail_msg: "systemd_creds/store requires 'secret', 'name' and 'path'."
+    quiet: true
+
+- name: "{{ step.uses }} ({{ step.id }}): Encrypt and store the secret"
+  potos.base.potos_systemd_creds:
+    action: encrypt
+    name: "{{ step_input.name }}"
+    secret: "{{ step_input.secret }}"
+    output_path: "{{ step_input.path }}"
+    with_key: "{{ step_input.with_key }}"
+    tpm2_pcrs: "{{ step_input.tpm2_pcrs }}"
+    tpm2_public_key: "{{ step_input.tpm2_public_key | default(omit) }}"
+    tpm2_public_key_pcrs: "{{ step_input.tpm2_public_key_pcrs }}"
+  no_log: "{{ not potos_steps_debug_no_log }}"
+
+- name: "{{ step.uses }} ({{ step.id }}): Set permissions on the credential blob"
+  ansible.builtin.file:
+    path: "{{ step_input.path }}"
+    mode: "{{ step_input.mode }}"
+    owner: "{{ step_input.owner }}"
+    group: "{{ step_input.group }}"
+
+- name: "{{ step.uses }} ({{ step.id }}): Register outputs"
+  ansible.builtin.include_tasks: steps/_register.yml
+  vars:
+    step_output:
+      path: "{{ step_input.path }}"

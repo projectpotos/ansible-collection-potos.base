@@ -3,11 +3,19 @@ version: "3"
 
 # Developer task runner for the potos.base collection (https://taskfile.dev).
 # All tasks run inside the uv-managed environment (see CONTRIBUTING).
-# List tasks with `go-task --list`; override the molecule scenario with:
-#   go-task molecule SCENARIO=basics
 
 vars:
-  SCENARIO: firstboot
+  SCENARIOS:
+    sh: ls -1 extensions/molecule/
+
+  .molecule-precondition: &molecule-precondition
+    - sh: test -d extensions/molecule/{{.SCENARIO}}
+      msg: |
+        Scenario '{{.SCENARIO}}' not found!
+        Available:
+          * {{.SCENARIOS | splitLines | join "\n  * "}}
+
+  WORKERS: "1"
 
 tasks:
   dev:setup:
@@ -36,25 +44,107 @@ tasks:
       - uv run ruff format .
 
   test:unit:
-    desc: Run the unit tests
+    desc: Run the unit tests with a coverage report
     cmds:
-      - uv run pytest tests/unit
+      - uv run pytest tests/unit -n 2 --cov=plugins --cov-report=term-missing --cov-report=html
 
   test:integration:
     desc: Run the integration tests
     cmds:
       - uv run pytest tests/integration
 
+  test:sanity:
+    desc: Run ansible-test sanity locally against a built copy of the collection
+    vars:
+      SANITY_DIR:
+        sh: mktemp -d -t potos-sanity-XXXXXX
+    cmds:
+      - defer: rm -rf {{.SANITY_DIR}}
+      - uv run ansible-galaxy collection build --output-path {{.SANITY_DIR}} --force
+      - uv run ansible-galaxy collection install {{.SANITY_DIR}}/potos-base-*.tar.gz -p {{.SANITY_DIR}}/collections --force
+      - cmd: >-
+          cd {{.SANITY_DIR}}/collections/ansible_collections/potos/base &&
+          uv run --project {{.ROOT_DIR}} ansible-test sanity --local --requirements
+
   test:
-    desc: Run the unit/integration test suite
+    desc: Run the full test suite
     cmds:
       - task: test:unit
+      - task: test:sanity
       - task: test:integration
 
-  molecule:
-    desc: Run a molecule scenario (SCENARIO=firstboot by default)
+  molecule:test:
+    desc: "Run molecule test for a single scenario (override: SCENARIO=name)"
+    requires:
+      vars: [SCENARIO]
+    preconditions: *molecule-precondition
     cmds:
       - uv run molecule test -s {{.SCENARIO}}
+
+  molecule:create:
+    desc: "Run molecule create for a single scenario (override: SCENARIO=name)"
+    requires:
+      vars: [SCENARIO]
+    preconditions: *molecule-precondition
+    cmds:
+      - uv run molecule create -s {{.SCENARIO}}
+
+  molecule:converge:
+    desc: "Run molecule converge for a single scenario (override: SCENARIO=name)"
+    requires:
+      vars: [SCENARIO]
+    preconditions: *molecule-precondition
+    cmds:
+      - uv run molecule converge -s {{.SCENARIO}}
+
+  molecule:verify:
+    desc: "Run molecule verify for a single scenario (override: SCENARIO=name)"
+    requires:
+      vars: [SCENARIO]
+    preconditions: *molecule-precondition
+    cmds:
+      - uv run molecule verify -s {{.SCENARIO}}
+
+  molecule:destroy:
+    desc: "Run molecule destroy for a single scenario (override: SCENARIO=name)"
+    requires:
+      vars: [SCENARIO]
+    preconditions: *molecule-precondition
+    cmds:
+      - uv run molecule destroy -s {{.SCENARIO}}
+
+  molecule:login:
+    desc: "Run molecule login for a single scenario (override: SCENARIO=name)"
+    requires:
+      vars: [SCENARIO]
+    preconditions: *molecule-precondition
+    cmds:
+      - uv run molecule login -s {{.SCENARIO}}
+
+  molecule:all:test:
+    desc: Run molecule test across every scenario in SCENARIOS
+    cmds:
+      - uv run molecule test --all --workers {{.WORKERS}}
+
+  molecule:all:create:
+    desc: Run molecule create across every scenario in SCENARIOS
+    cmds:
+      - uv run molecule create --all --workers {{.WORKERS}}
+
+  molecule:all:converge:
+    desc: Run molecule converge across every scenario in SCENARIOS
+    cmds:
+      - uv run molecule converge --all --workers {{.WORKERS}}
+
+  molecule:all:verify:
+    desc: Run molecule verify across every scenario in SCENARIOS
+    cmds:
+      - uv run molecule verify --all --workers {{.WORKERS}}
+
+  molecule:all:destroy:
+    desc: Run molecule destroy across every scenario in SCENARIOS
+    cmds:
+      - uv run molecule destroy --all --workers {{.WORKERS}}
 
   check:
     desc: Run lint + test

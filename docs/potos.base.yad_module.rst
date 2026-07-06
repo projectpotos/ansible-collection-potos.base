@@ -851,23 +851,7 @@ Common return values are documented `here <https://docs.ansible.com/ansible/late
             <tr>
                 <td colspan="1">
                     <div class="ansibleOptionAnchor" id="return-"></div>
-                    <b>value</b>
-                    <a class="ansibleOptionLink" href="#return-" title="Permalink to this return value"></a>
-                    <div style="font-size: small">
-                      <span style="color: purple">string</span>
-                    </div>
-                </td>
-                <td>when a value was collected</td>
-                <td>
-                            <div>Single user-supplied value for O(dialog=entry), O(dialog=list) or single-field forms.</div>
-                            <div>Equal to the only entry of RV(values).</div>
-                    <br/>
-                </td>
-            </tr>
-            <tr>
-                <td colspan="1">
-                    <div class="ansibleOptionAnchor" id="return-"></div>
-                    <b>values</b>
+                    <b>raw_values</b>
                     <a class="ansibleOptionLink" href="#return-" title="Permalink to this return value"></a>
                     <div style="font-size: small">
                       <span style="color: purple">list</span>
@@ -877,6 +861,22 @@ Common return values are documented `here <https://docs.ansible.com/ansible/late
                 <td>always</td>
                 <td>
                             <div>Ordered list of raw values returned by <code>yad</code>.</div>
+                    <br/>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="1">
+                    <div class="ansibleOptionAnchor" id="return-"></div>
+                    <b>value</b>
+                    <a class="ansibleOptionLink" href="#return-" title="Permalink to this return value"></a>
+                    <div style="font-size: small">
+                      <span style="color: purple">string</span>
+                    </div>
+                </td>
+                <td>when a value was collected</td>
+                <td>
+                            <div>Single user-supplied value for O(dialog=entry), O(dialog=list) or single-field forms.</div>
+                            <div>Equal to the only entry of RV(raw_values).</div>
                     <br/>
                 </td>
             </tr>

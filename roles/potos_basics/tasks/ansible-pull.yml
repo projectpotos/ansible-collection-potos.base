@@ -15,6 +15,14 @@
     group: root
     mode: "0750"
 
+- name: Install the ansible-vault systemd-creds password helper
+  ansible.builtin.template:
+    src: usr/libexec/potos/potos-vault-pass.sh.j2
+    dest: "{{ potos_basics_libexec_dir }}/potos-vault-pass.sh"
+    owner: root
+    group: root
+    mode: "0755"
+
 - name: Install the templated systemd service
   ansible.builtin.template:
     src: etc/systemd/system/potos-ansible-pull@.service.j2

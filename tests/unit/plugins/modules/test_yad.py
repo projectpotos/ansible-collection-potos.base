@@ -14,19 +14,11 @@ from typing import Any
 import pytest
 
 
-# Load the module directly from its source path. This avoids depending on
-# the collection being installed in ``ansible_collections.potos.base`` for
-# the unit test environment.
 _MODULE_PATH = Path(__file__).resolve().parents[4] / "plugins" / "modules" / "yad.py"
 _spec = importlib.util.spec_from_file_location("potos_base_yad_under_test", _MODULE_PATH)
 assert _spec is not None and _spec.loader is not None
 yad = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(yad)
-
-
-# ---------------------------------------------------------------------------
-# Pure helpers
-# ---------------------------------------------------------------------------
 
 
 def test_build_window_args_emits_only_set_options() -> None:
@@ -96,11 +88,6 @@ def test_build_button_args_action_and_id_are_mutually_exclusive() -> None:
         yad._build_button_args([{"label": "OK", "action": "/x.sh", "id": 0}])
 
 
-def test_build_button_args_passes_through_gtk_stock_id() -> None:
-    """GTK stock ids are still accepted verbatim (not rewritten)."""
-    assert yad._build_button_args([{"label": "gtk-ok"}]) == ["--button", "gtk-ok"]
-
-
 def test_build_button_args_none() -> None:
     assert yad._build_button_args(None) == []
     assert yad._build_button_args([]) == []
@@ -125,7 +112,7 @@ def test_build_form_args_with_defaults_appends_after_double_dash() -> None:
         {"label": "Username", "default": "alice"},
         {"label": "Password", "type": "H"},
     ]
-    _, tail = yad._build_form_args(fields, separator="|")
+    _field_args, tail = yad._build_form_args(fields, separator="|")
     assert tail == ["--", "alice", ""]
 
 
@@ -189,11 +176,6 @@ def test_env_for_validation_exposes_indexed_and_slug_vars() -> None:
     assert env["YAD_FIELD_1"] == "s3cret"
     assert env["YAD_FIELD_USERNAME"] == "alice"
     assert env["YAD_FIELD_CONFIRM_PASSWORD"] == "s3cret"
-
-
-# ---------------------------------------------------------------------------
-# Validation engine
-# ---------------------------------------------------------------------------
 
 
 @pytest.fixture()
@@ -293,11 +275,6 @@ def test_validate_returns_first_error_only(labels: list[str]) -> None:
     assert yad._validate(spec, ["", "", ""], labels, {}) == "first"
 
 
-# ---------------------------------------------------------------------------
-# Command-line assembly per dialog type
-# ---------------------------------------------------------------------------
-
-
 def _base_params(**overrides: Any) -> dict[str, Any]:
     """Build a fully-populated params dict mirroring the argspec defaults."""
     params: dict[str, Any] = {
@@ -344,7 +321,7 @@ def test_build_argv_form() -> None:
     assert "--form" in argv
     assert "--field" in argv
     assert labels == ["Username", "Password"]
-    assert tail == []  # no defaults provided
+    assert tail == []
 
 
 def test_build_argv_entry_with_hide() -> None:
@@ -370,7 +347,7 @@ def test_build_argv_list() -> None:
 
 def test_build_argv_message_adds_default_ok_button() -> None:
     params = _base_params(dialog="message", text="hello")
-    argv, _, _ = yad._build_argv(params)
+    argv, _labels, _tail = yad._build_argv(params)
     assert "--button" in argv
     assert yad.DEFAULT_OK_LABEL in argv
 
@@ -382,13 +359,8 @@ def test_build_argv_form_requires_fields() -> None:
 
 def test_build_argv_appends_extra_args() -> None:
     params = _base_params(dialog="message", extra_args=["--undecorated"])
-    argv, _, _ = yad._build_argv(params)
+    argv, _labels, _tail = yad._build_argv(params)
     assert "--undecorated" in argv
-
-
-# ---------------------------------------------------------------------------
-# End-to-end driver with a stubbed yad
-# ---------------------------------------------------------------------------
 
 
 def test_run_with_validation_happy_path(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -418,7 +390,7 @@ def test_run_with_validation_happy_path(monkeypatch: pytest.MonkeyPatch) -> None
         ],
     )
     result = yad._run_with_validation(params, env={})
-    assert result["values"] == ["alice", "s3cret", "s3cret"]
+    assert result["raw_values"] == ["alice", "s3cret", "s3cret"]
     assert result["fields"] == {
         "Username": "alice",
         "Password": "s3cret",
@@ -514,14 +486,14 @@ def test_run_with_validation_cancel_stops_loop(
     )
     result = yad._run_with_validation(params, env={})
     assert result["cancelled"] is True
-    assert result["values"] == []
+    assert result["raw_values"] == []
     assert result["attempts"] == 1
 
 
 def test_run_with_validation_message_dialog_returns_empty(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Message dialogs collect no input but still report cmd/attempts."""
+    """Message dialogs collect no input."""
 
     def fake(argv, env, stdin_data=None):
         return 0, "", ""
@@ -530,8 +502,9 @@ def test_run_with_validation_message_dialog_returns_empty(
 
     params = _base_params(dialog="message", text="hello")
     result = yad._run_with_validation(params, env={})
-    assert result["values"] == []
+    assert result["raw_values"] == []
     assert result["cancelled"] is False
+    assert result["attempts"] == 1
     assert "value" not in result
     assert "fields" not in result
 
@@ -539,7 +512,7 @@ def test_run_with_validation_message_dialog_returns_empty(
 def test_run_with_validation_single_value_sets_value_key(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Entry dialogs return a single ``value`` for ergonomic playbook use."""
+    """Entry dialogs return a single ``value``."""
 
     def fake(argv, env, stdin_data=None):
         return 0, "host01\n", ""
@@ -549,4 +522,4 @@ def test_run_with_validation_single_value_sets_value_key(
     params = _base_params(dialog="entry")
     result = yad._run_with_validation(params, env={})
     assert result["value"] == "host01"
-    assert result["values"] == ["host01"]
+    assert result["raw_values"] == ["host01"]

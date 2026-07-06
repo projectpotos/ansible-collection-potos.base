@@ -1,0 +1,34 @@
+---
+dependency:
+  name: galaxy
+
+driver:
+  name: podman
+
+platforms:
+  - name: potos-firstboot-luks
+    image: "ghcr.io/projectpotos/docker-${MOLECULE_DISTRO:-fedora44}-ansible:latest"
+    pre_build_image: true
+    override_command: false
+    privileged: false
+    systemd: true
+
+provisioner:
+  name: ansible
+
+verifier:
+  name: ansible
+
+scenario:
+  # firstboot isn't idempotent by design, so we can't test that.
+  test_sequence:
+    - dependency
+    - cleanup
+    - destroy
+    - syntax
+    - create
+    - prepare
+    - converge
+    - verify
+    - cleanup
+    - destroy

@@ -1,0 +1,32 @@
+---
+dependency:
+  name: galaxy
+
+driver:
+  name: podman
+
+platforms:
+  - name: potos-periodic
+    image: "ghcr.io/projectpotos/docker-${MOLECULE_DISTRO:-fedora44}-ansible:latest"
+    pre_build_image: true
+    override_command: false
+    privileged: false
+    systemd: true
+
+provisioner:
+  name: ansible
+
+verifier:
+  name: ansible
+
+scenario:
+  # not idempotent by design
+  test_sequence:
+    - dependency
+    - destroy
+    - syntax
+    - create
+    - prepare
+    - converge
+    - verify
+    - destroy

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # {{ ansible_managed }}
 #
 # Runs the periodic potos ansible playbook against localhost to enforce
@@ -21,12 +21,33 @@ INVENTORY="{{ potos_basics_inventory }}"
 LOCK="/var/lock/{{ potos_basics_client_name | lower }}.lock"
 SPECS_DIR="{{ potos_basics_specs_clone_dir }}"
 SPECS_GALAXY_DIR="{{ potos_basics_specs_galaxy_dir }}"
+VAULT_BACKEND="{{ potos_basics_ansible_vault_key_backend }}"
 VAULT_KEY="{{ potos_basics_ansible_vault_key_file }}"
+VAULT_NAME="{{ potos_basics_ansible_vault_key_name }}"
+VAULT_PASS_HELPER="{{ potos_basics_libexec_dir }}/potos-vault-pass.sh"
+CONFIG_FILE="{{ potos_basics_config_file }}"
 LOG="${LOGDIR}/ansible-pull.log"
 ANSIBLE_PLAYBOOK="${VENVDIR}/bin/ansible-playbook"
 export ANSIBLE_COLLECTIONS_PATH="${ANSIBLE_COLLECTIONS_PATH:-/usr/share/ansible/collections}"
 
 die () { printf '%s\n' "$1" >&2; exit 1; }
+
+# Send a desktop notification to every active graphical session. The pull
+# service runs as root with no session bus of its own, so notify-send must be
+# re-targeted at each logged-in user's D-Bus; otherwise libnotify tries to
+# autolaunch a bus via X11 and fails.
+notify_users() {
+  local urgency="$1" body="$2" bus uid name
+  for bus in /run/user/*/bus; do
+    [ -S "${bus}" ] || continue
+    uid="${bus#/run/user/}"; uid="${uid%/bus}"
+    name="$(/usr/bin/id -nu "${uid}" 2>/dev/null)" || continue
+    /usr/sbin/runuser -u "${name}" -- /usr/bin/env \
+      XDG_RUNTIME_DIR="/run/user/${uid}" \
+      DBUS_SESSION_BUS_ADDRESS="unix:path=${bus}" \
+      /usr/bin/notify-send -u "${urgency}" --expire-time=0 "${body}" || true
+  done
+}
 
 Help() {
     cat <<'HELPEOF'
@@ -67,10 +88,11 @@ done
 if ! ${VERBOSE}; then exec >>"${LOG}" 2>&1; fi
 {% endif %}
 
-for tool in /usr/bin/awk /usr/bin/bc /usr/bin/date /usr/bin/flock /usr/bin/git \
-            /usr/bin/grep /usr/bin/mkdir /usr/bin/notify-send /usr/bin/sed \
-            /usr/bin/tail /usr/bin/touch /usr/bin/tr /usr/bin/uptime \
-            /usr/bin/wall /usr/bin/nmcli; do
+for tool in /usr/bin/awk /usr/bin/bc /usr/bin/date /usr/bin/env /usr/bin/flock \
+            /usr/bin/git /usr/bin/grep /usr/bin/id /usr/bin/mkdir \
+            /usr/bin/notify-send /usr/bin/sed /usr/sbin/runuser /usr/bin/tail \
+            /usr/bin/touch /usr/bin/tr /usr/bin/uptime /usr/bin/wall \
+            /usr/bin/nmcli /usr/bin/yq; do
   [ -x "${tool}" ] || die "Required tool '${tool}' not available!"
 done
 
@@ -85,9 +107,40 @@ exec {flockfd}<"${LOCK}"
 
 mkdir -p "${WORKDIR}" "${LOGDIR}" || die "Failed to create work/log directories"
 
+# ansible-vault
+if [ -f "${CONFIG_FILE}" ]; then
+  _vk_backend="$(/usr/bin/yq '.credentials.ansible_vault_key.backend // ""' "${CONFIG_FILE}" 2>/dev/null || true)"
+  _vk_path="$(/usr/bin/yq '.credentials.ansible_vault_key.path // ""' "${CONFIG_FILE}" 2>/dev/null || true)"
+  _vk_name="$(/usr/bin/yq '.credentials.ansible_vault_key.name // ""' "${CONFIG_FILE}" 2>/dev/null || true)"
+  [ -n "${_vk_backend}" ] && VAULT_BACKEND="${_vk_backend}"
+  [ -n "${_vk_path}" ] && VAULT_KEY="${_vk_path}"
+  [ -n "${_vk_name}" ] && VAULT_NAME="${_vk_name}"
+fi
+
 VAULT_OPT=()
-if [ -f "${VAULT_KEY}" ]; then
-  VAULT_OPT=("--vault-password-file=${VAULT_KEY}")
+case "${VAULT_BACKEND}" in
+  none)
+    ;;
+  systemd-creds)
+    export POTOS_VAULT_CRED_PATH="${VAULT_KEY}"
+    export POTOS_VAULT_CRED_NAME="${VAULT_NAME}"
+    VAULT_OPT=("--vault-password-file=${VAULT_PASS_HELPER}")
+    ;;
+  *)
+    if [ -f "${VAULT_KEY}" ]; then
+      VAULT_OPT=("--vault-password-file=${VAULT_KEY}")
+    fi
+    ;;
+esac
+
+VERBOSITY_OPT=()
+LEVEL=0
+if [ -f "${CONFIG_FILE}" ]; then
+  LEVEL="$(/usr/bin/yq '.debug.verbosity // 0' "${CONFIG_FILE}" 2>/dev/null)" || LEVEL=0
+fi
+[[ "${LEVEL}" =~ ^[0-9]+$ ]] || LEVEL=0
+if [ "${LEVEL}" -gt 0 ]; then
+  VERBOSITY_OPT=("-$(printf 'v%.0s' $(seq 1 "${LEVEL}"))")
 fi
 
 RC=0
@@ -97,11 +150,12 @@ echo "=== potos: stage 1 (prepare) - runtype=${RUN_TYPE} ===" >&2
 "${ANSIBLE_PLAYBOOK}" \
   -i "${INVENTORY}" \
   "${VAULT_OPT[@]}" \
+  "${VERBOSITY_OPT[@]}" \
   -e "potos_runtype=${RUN_TYPE}" \
   potos.base.prepare \
   || RC=$?
 
-# Skipped when stage 1 didn't produce a specs clone (e.g. no specs URL configured yet, or stage 1 failed).
+# Skipped when stage 1 didn't produce a specs clone
 if [ "${RC}" -eq 0 ] && [ -f "${SPECS_DIR}/runtime.yml" ]; then
   echo "=== potos: stage 2 (apply) - runtype=${RUN_TYPE} ===" >&2
   STAGE2_INV_OPT=("-i" "${INVENTORY}")
@@ -113,6 +167,7 @@ if [ "${RC}" -eq 0 ] && [ -f "${SPECS_DIR}/runtime.yml" ]; then
     "${ANSIBLE_PLAYBOOK}" \
       "${STAGE2_INV_OPT[@]}" \
       "${VAULT_OPT[@]}" \
+      "${VERBOSITY_OPT[@]}" \
       -e "potos_runtype=${RUN_TYPE}" \
       -e "potos_specs_dir=${SPECS_DIR}" \
       potos.base.apply \
@@ -124,7 +179,7 @@ if [ "${RC}" -ne 0 ] || /usr/bin/grep -q 'failed=[1-9]' "${LOG}" 2>/dev/null; th
 {% for line in potos_basics_on_error_additional_lines %}
 {{ line }}
 {% endfor %}"
-  /usr/bin/notify-send -u critical --expire-time=0 "${MSG}" || true
+  notify_users critical "${MSG}"
   /usr/bin/wall "${MSG}" || true
 fi
 
@@ -138,7 +193,7 @@ if [ "${DAYS_DIFF}" -gt "{{ potos_basics_reboot_reminder_days }}" ]; then
   UPTIME_MSG="Your $(hostname) has been up for ${DAYS_DIFF} days (> {{ potos_basics_reboot_reminder_days }}).
 Consider rebooting to keep the system secure."
   echo "${UPTIME_MSG}"
-  /usr/bin/notify-send -u normal --expire-time=0 "${UPTIME_MSG}" || true
+  notify_users normal "${UPTIME_MSG}"
   /usr/bin/wall "${UPTIME_MSG}" || true
 fi
 {% endif %}

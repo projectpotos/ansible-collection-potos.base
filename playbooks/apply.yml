@@ -1,5 +1,5 @@
 ---
-- name: Potos periodic run - stage 2 (specs apply)
+- name: Potos periodic run - stage 2 (apply specs)
   hosts: all
   become: true
   gather_facts: true
@@ -9,10 +9,14 @@
     potos_runtype: daily
 
   pre_tasks:
+    - name: Read the specs runtime.yml from the managed machine
+      ansible.builtin.slurp:
+        src: "{{ potos_specs_dir }}/runtime.yml"
+      register: potos_specs_runs_raw
+
     - name: Load the specs runtime.yml
-      ansible.builtin.include_vars:
-        file: "{{ potos_specs_dir }}/runtime.yml"
-        name: potos_specs_runs
+      ansible.builtin.set_fact:
+        potos_specs_runs: "{{ potos_specs_runs_raw.content | b64decode | from_yaml }}"
 
     - name: Validate the runtime.yml structure
       ansible.builtin.assert:
@@ -25,7 +29,7 @@
           runtypes.{{ potos_runtype }} as a list of role names.
 
   tasks:
-    - name: Run roles declared for runtype "{{ potos_runtype }}"
+    - name: Run roles for runtype "{{ potos_runtype }}"
       ansible.builtin.include_role:
         name: "{{ _role }}"
       loop: "{{ potos_specs_runs.runtypes[potos_runtype] }}"

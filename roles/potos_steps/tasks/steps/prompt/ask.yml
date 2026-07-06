@@ -1,0 +1,62 @@
+---
+# Category: prompt / Step: ask
+# Show a yad form and capture the entered field values as outputs.
+#
+# inputs:
+#   title        str   optional. Dialog title (defaults to the client name).
+#   text         str   optional. Prompt text shown above the fields.
+#   fields       list  required. yad form fields, e.g. [{label: Token, type: H}].
+#   validations  list  optional. yad validations (see the yad module).
+#   secret       bool  default true. Mark captured values secret (no_log).
+# outputs:
+#   values  dict  field label -> entered value
+#   value   str   the single/first value
+
+- name: "{{ step.uses }} ({{ step.id }}): Apply input defaults"
+  ansible.builtin.set_fact:
+    step_input: "{{ step_defaults | combine(step_input) }}"
+  vars:
+    step_defaults:
+      title: "{{ potos_steps_client_name }} Setup"
+      text: "Input:"
+      validations: []
+      secret: true
+
+- name: "{{ step.uses }} ({{ step.id }}): Validate fields were provided"
+  ansible.builtin.assert:
+    that:
+      - step_input.fields is defined
+      - step_input.fields | length > 0
+    fail_msg: "prompt/ask requires a non-empty 'fields' list."
+    quiet: true
+
+- name: "{{ step.uses }} ({{ step.id }}): Show the prompt"
+  potos.base.yad:
+    dialog: form
+    title: "{{ step_input.title }}"
+    text: "{{ step_input.text }}"
+    fullscreen: true
+    borders: 20
+    align: center
+    image: "{{ potos_steps_logo }}"
+    image_on_top: true
+    fields: "{{ step_input.fields }}"
+    buttons:
+      - label: OK
+        id: 0
+      - label: Change keyboard layout
+        action: "{{ potos_steps_setup_dir }}/change-keyboard-layout.sh"
+    validations: "{{ step_input.validations }}"
+    max_attempts: 0
+  register: prompt_ask_dialog
+  no_log: "{{ (step_input.secret | bool) and not potos_steps_debug_no_log }}"
+  tags:
+    - molecule-notest
+
+- name: "{{ step.uses }} ({{ step.id }}): Register outputs"
+  ansible.builtin.include_tasks: steps/_register.yml
+  vars:
+    step_output:
+      values: "{{ prompt_ask_dialog.fields | default({}) }}"
+      value: "{{ prompt_ask_dialog.value | default('') }}"
+    step_output_secret: "{{ step_input.secret | bool }}"

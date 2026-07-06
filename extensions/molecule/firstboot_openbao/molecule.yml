@@ -1,0 +1,51 @@
+---
+dependency:
+  name: galaxy
+
+driver:
+  name: podman
+
+platforms:
+  - name: potos-firstboot-openbao
+    image: "ghcr.io/projectpotos/docker-${MOLECULE_DISTRO:-fedora44}-ansible:latest"
+    pre_build_image: true
+    override_command: false
+    privileged: false
+    systemd: true
+    groups:
+      - instance
+    network: molecule_potos_openbao
+
+  - name: potos-firstboot-openbao-server
+    image: "ghcr.io/openbao/openbao:2.5.5"
+    pre_build_image: true
+    override_command: true
+    privileged: false
+    command:
+      - server
+      - -dev
+      - -dev-root-token-id=root
+      - -dev-listen-address=0.0.0.0:8200
+    groups:
+      - openbao_server
+    network: molecule_potos_openbao
+
+provisioner:
+  name: ansible
+
+verifier:
+  name: ansible
+
+scenario:
+  # not idempotent by design
+  test_sequence:
+    - dependency
+    - cleanup
+    - destroy
+    - syntax
+    - create
+    - prepare
+    - converge
+    - verify
+    - cleanup
+    - destroy

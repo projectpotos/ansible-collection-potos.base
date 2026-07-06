@@ -5,10 +5,8 @@ This repository contains the `potos.base` Ansible Collection.
 <!--start requires_ansible-->
 ## Ansible version compatibility
 
-This collection has been tested against following Ansible versions: **>=2.15.0**.
+This collection has been tested against the following Ansible versions: **>=2.15.0**.
 
-For collections that support Ansible 2.9, please ensure you update your `network_os` to use the
-fully qualified collection name (for example, `cisco.ios.ios`).
 Plugins and modules within a collection may be tested with only specific Ansible versions.
 A collection may contain metadata that identifies these versions.
 PEP440 is the schema used to describe the versions of Ansible.
@@ -23,10 +21,28 @@ which requirements are needed.
 ## Included content
 
 <!--start collection content-->
+### Resolve_step_refs filter plugins
+Ansible filter plugin entry point.
+
+Name | Description
+--- | ---
+potos.base.resolve_step_refs|Render ``{{ steps.* }}`` and ``{{ ansible_facts.* }}`` refs in ``value``.
+
+### Yad_password_validation filter plugins
+Ansible filter plugin entry point.
+
+Name | Description
+--- | ---
+potos.base.yad_password_validation|Return yad validations enforcing ``policy`` on ``password_field``.
+
 ### Modules
 Name | Description
 --- | ---
-[potos.base.yad](http://example.com/repository/blob/main/docs/potos.base.yad_module.rst)|Display a YAD (GTK) dialog and return the user's input
+[potos.base.potos_luks](https://github.com/projectpotos/ansible-collection-potos.base/blob/main/docs/potos.base.potos_luks_module.rst)|Do various LUKS operations
+[potos.base.potos_openbao](https://github.com/projectpotos/ansible-collection-potos.base/blob/main/docs/potos.base.potos_openbao_module.rst)|Interact with OpenBao KV engine
+[potos.base.potos_set_password](https://github.com/projectpotos/ansible-collection-potos.base/blob/main/docs/potos.base.potos_set_password_module.rst)|Set a local user's password using chpasswd
+[potos.base.potos_systemd_creds](https://github.com/projectpotos/ansible-collection-potos.base/blob/main/docs/potos.base.potos_systemd_creds_module.rst)|Encrypt or decrypt a secret with systemd-creds
+[potos.base.yad](https://github.com/projectpotos/ansible-collection-potos.base/blob/main/docs/potos.base.yad_module.rst)|Display a YAD (GTK) dialog and return the user's input
 
 <!--end collection content-->
 

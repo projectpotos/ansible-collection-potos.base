@@ -1,0 +1,41 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  gather_facts: false
+  vars:
+    potos_client: potos
+  tasks:
+    - name: Stat the artifacts the role installs
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      loop:
+        - "/usr/local/bin/{{ potos_client }}-ansible-pull"
+        - "/etc/systemd/system/{{ potos_client }}-ansible-pull@.service"
+        - "/etc/systemd/system/{{ potos_client }}-ansible-pull-daily.timer"
+        - "/etc/systemd/system/{{ potos_client }}-ansible-pull-hourly.timer"
+        - "/etc/logrotate.d/{{ potos_client }}-ansible-pull"
+        - "/var/lib/{{ potos_client }}/ansible/{{ potos_client }}_inventory"
+        - "/var/lib/{{ potos_client }}/virtenv/bin/ansible"
+      register: potos_basics_artifacts
+
+    - name: All expected artifacts exist
+      ansible.builtin.assert:
+        that:
+          - item.stat.exists
+        fail_msg: "missing expected artifact: {{ item.item }}"
+      loop: "{{ potos_basics_artifacts.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+
+    - name: Query the daily timer state (installed but not enabled)
+      ansible.builtin.systemd:
+        name: "{{ potos_client }}-ansible-pull-daily.timer"
+      register: potos_timer_state
+      changed_when: false
+
+    - name: Timer must not be enabled (potos_basics_timer_activate was false)
+      ansible.builtin.assert:
+        that:
+          - potos_timer_state.status.UnitFileState != 'enabled'
+        fail_msg: "daily timer should not be enabled when potos_basics_timer_activate is false"

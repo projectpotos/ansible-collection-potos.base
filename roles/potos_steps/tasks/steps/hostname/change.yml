@@ -1,0 +1,92 @@
+---
+# Category: hostname / Step: change
+# Change the machine hostname.
+#
+# inputs:
+#   ask    bool  optional, default true. Ask the user via a dialog.
+#   value  str   optional. Preset hostname; when set the dialog is skipped.
+# outputs:
+#   hostname  str  the hostname that was applied
+
+- name: "{{ step.uses }} ({{ step.id }}): Apply input defaults"
+  ansible.builtin.set_fact:
+    step_input: "{{ step_defaults | combine(step_input) }}"
+  vars:
+    step_defaults:
+      ask: true
+
+- name: "{{ step.uses }} ({{ step.id }}): Save old hostname"
+  ansible.builtin.command:
+    cmd: hostname
+  register: hostname_change_old
+  changed_when: false
+
+- name: "{{ step.uses }} ({{ step.id }}): Use preset hostname when provided"
+  ansible.builtin.set_fact:
+    hostname_change_value: "{{ step_input.value }}"
+  when: step_input.value | default('') | length > 0
+
+- name: "{{ step.uses }} ({{ step.id }}): Ask hostname"
+  potos.base.yad:
+    dialog: form
+    title: "{{ potos_steps_client_name }} Hostname"
+    text: |
+      Please enter your hostname below.
+    fullscreen: true
+    borders: 20
+    align: center
+    image: "{{ potos_steps_logo }}"
+    image_on_top: true
+    fields:
+      - label: Hostname
+    buttons:
+      - label: OK
+        id: 0
+      - label: Change keyboard layout
+        action: "{{ potos_steps_setup_dir }}/change-keyboard-layout.sh"
+    validations:
+      - type: required
+        field: Hostname
+        error_message: Please choose the hostname.
+      - type: regex
+        field: Hostname
+        pattern: "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$"
+        error_message: >-
+          Hostname is invalid! Make sure it only contains lowercase letters, digits and
+          hyphens. It must not start or end with a hyphen, and be at most 63 characters long.
+    max_attempts: 0
+  register: hostname_change_dialog
+  when:
+    - hostname_change_value is not defined
+    - step_input.ask | bool
+  tags:
+    - molecule-notest
+
+- name: "{{ step.uses }} ({{ step.id }}): Resolve hostname from dialog"
+  ansible.builtin.set_fact:
+    hostname_change_value: "{{ hostname_change_dialog.value }}"
+  when:
+    - hostname_change_value is not defined
+    - step_input.ask | bool
+  tags:
+    - molecule-notest
+
+- name: "{{ step.uses }} ({{ step.id }}): Set hostname"
+  ansible.builtin.hostname:
+    name: "{{ hostname_change_value }}"
+  when: hostname_change_value is defined
+
+- name: "{{ step.uses }} ({{ step.id }}): Adjust hosts file"
+  ansible.builtin.replace:
+    path: /etc/hosts
+    regexp: "{{ hostname_change_old.stdout }}"
+    replace: "{{ hostname_change_value }}"
+  when:
+    - hostname_change_value is defined
+    - hostname_change_old.stdout != ''
+
+- name: "{{ step.uses }} ({{ step.id }}): Register outputs"
+  ansible.builtin.include_tasks: steps/_register.yml
+  vars:
+    step_output:
+      hostname: "{{ hostname_change_value | default(hostname_change_old.stdout) }}"

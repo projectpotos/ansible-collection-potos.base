@@ -4,11 +4,21 @@
     path: "{{ potos_basics_config_file }}"
   register: potos_basics_config_stat
 
+- name: Fail when the system config is missing
+  ansible.builtin.fail:
+    msg: >-
+      The Potos system config was not found at {{ potos_basics_config_file }}
+      on the managed node. This file is required.
+  when: not potos_basics_config_stat.stat.exists
+
+- name: Read system config from the managed node
+  ansible.builtin.slurp:
+    src: "{{ potos_basics_config_file }}"
+  register: potos_basics_config_raw
+
 - name: Load system config
-  ansible.builtin.include_vars:
-    file: "{{ potos_basics_config_file }}"
-    name: potos_config
-  when: potos_basics_config_stat.stat.exists
+  ansible.builtin.set_fact:
+    potos_config: "{{ potos_basics_config_raw.content | b64decode | from_yaml }}"
 
 - name: Apply derived base role variables from system config
   ansible.builtin.set_fact:
@@ -18,7 +28,25 @@
       {{ potos_config.specs.branch | default(potos_basics_specs_branch) }}
     potos_basics_client_name: >-
       {{ potos_config.client_name.short | default(potos_basics_client_name) }}
-  when: potos_basics_config_stat.stat.exists
+
+- name: Apply credential backend settings from system config
+  ansible.builtin.set_fact:
+    potos_basics_specs_token_backend: >-
+      {{ _specs_token.backend | default(potos_basics_specs_token_backend) }}
+    potos_basics_specs_token_file: >-
+      {{ _specs_token.path | default(potos_basics_specs_token_file) }}
+    potos_basics_specs_token_name: >-
+      {{ _specs_token.name | default(potos_basics_specs_token_name) }}
+    potos_basics_ansible_vault_key_backend: >-
+      {{ _vault_key.backend | default(potos_basics_ansible_vault_key_backend) }}
+    potos_basics_ansible_vault_key_file: >-
+      {{ _vault_key.path | default(potos_basics_ansible_vault_key_file) }}
+    potos_basics_ansible_vault_key_name: >-
+      {{ _vault_key.name | default(potos_basics_ansible_vault_key_name) }}
+  vars:
+    _credentials: "{{ potos_config.credentials | default({}, true) }}"
+    _specs_token: "{{ _credentials.specs_token | default({}, true) }}"
+    _vault_key: "{{ _credentials.ansible_vault_key | default({}, true) }}"
 
 - name: Apply role_vars from system config
   ansible.builtin.set_fact:
@@ -26,4 +54,3 @@
   loop: "{{ (potos_config.role_vars | default({})) | dict2items }}"
   loop_control:
     label: "{{ item.key }}"
-  when: potos_basics_config_stat.stat.exists

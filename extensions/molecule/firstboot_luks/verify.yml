@@ -1,0 +1,67 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  gather_facts: false
+
+  vars:
+    luks_img: /var/lib/potos/test-luks.img
+
+  tasks:
+    - name: Stat the generated-passphrase file from the random_rotate step
+      ansible.builtin.stat:
+        path: /var/lib/potos/random-pass
+      register: luks_random_pass_stat
+
+    - name: Read the generated LUKS passphrase
+      ansible.builtin.slurp:
+        src: /var/lib/potos/random-pass
+      register: luks_random_pass
+
+    - name: random_rotate produced a 64-char passphrase written with mode 0400
+      ansible.builtin.assert:
+        that:
+          - luks_random_pass_stat.stat.exists
+          - luks_random_pass_stat.stat.mode == '0400'
+          - (luks_random_pass.content | b64decode) | length == 64
+        fail_msg: >-
+          luks/random_rotate did not produce the expected 0400 passphrase file
+          (mode {{ luks_random_pass_stat.stat.mode | default('?') }}).
+
+    - name: The original initial passphrase no longer unlocks the image
+      ansible.builtin.command:
+        cmd: cryptsetup luksOpen --test-passphrase --key-file=- {{ luks_img }}
+        stdin: "Zt7ZkQ9mW2xPv4rLb8c"
+        stdin_add_newline: false
+      register: luks_initial_test
+      changed_when: false
+      failed_when: false
+
+    - name: The intermediate "second" passphrase no longer unlocks the image
+      ansible.builtin.command:
+        cmd: cryptsetup luksOpen --test-passphrase --key-file=- {{ luks_img }}
+        stdin: "Rj4NpH6dW9kLq2mXc5v"
+        stdin_add_newline: false
+      register: luks_second_test
+      changed_when: false
+      failed_when: false
+
+    - name: The generated passphrase unlocks the image
+      ansible.builtin.command:
+        cmd: cryptsetup luksOpen --test-passphrase --key-file=- {{ luks_img }}
+        stdin: "{{ luks_random_pass.content | b64decode }}"
+        stdin_add_newline: false
+      register: luks_random_test
+      changed_when: false
+      failed_when: false
+
+    - name: Both rotations worked as expected
+      ansible.builtin.assert:
+        that:
+          - luks_initial_test.rc != 0
+          - luks_second_test.rc != 0
+          - luks_random_test.rc == 0
+        fail_msg: >-
+          LUKS key rotation did not chain as expected
+          (initial rc={{ luks_initial_test.rc }}, second rc={{ luks_second_test.rc }},
+          generated rc={{ luks_random_test.rc }}).

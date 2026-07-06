@@ -1,0 +1,158 @@
+---
+- name: Prepare
+  hosts: all
+  become: true
+  gather_facts: false
+
+  vars:
+    specs_src: /opt/potos-specs-src
+    specs_roles_src: /opt/potos-specs-roles
+    system_collections: /usr/share/ansible/collections
+
+  tasks:
+    - name: Install OS dependencies for the test container
+      ansible.builtin.package:
+        name:
+          - git
+          - hostname
+          - util-linux
+          - logrotate
+        state: present
+
+    - name: Avoid git "dubious ownership" on the root-owned fixtures
+      ansible.builtin.command: git config --global --add safe.directory '*' # noqa: command-instead-of-module
+      changed_when: false
+
+    - name: Build and stage the collection
+      delegate_to: localhost
+      become: false
+      block:
+        - name: Resolve the collection root
+          ansible.builtin.command:
+            cmd: realpath {{ (playbook_dir ~ '/../../..') | quote }}
+          register: potos_collection_root
+          changed_when: false
+
+        - name: Fail early if the collection root looks wrong
+          ansible.builtin.stat:
+            path: "{{ potos_collection_root.stdout }}/galaxy.yml"
+          register: potos_galaxy_yml
+          failed_when: not potos_galaxy_yml.stat.exists
+
+        - name: Create a build output directory on the controller
+          ansible.builtin.tempfile:
+            state: directory
+            suffix: potos-build
+          register: potos_build_dir
+
+        - name: Build the potos.base collection artifact
+          ansible.builtin.command:
+            argv:
+              - ansible-galaxy
+              - collection
+              - build
+              - "{{ potos_collection_root.stdout }}"
+              - --output-path
+              - "{{ potos_build_dir.path }}"
+              - --force
+          changed_when: true
+
+        - name: Locate the built artifact
+          ansible.builtin.find:
+            paths: "{{ potos_build_dir.path }}"
+            patterns: potos-base-*.tar.gz
+          register: potos_build_artifact
+
+    - name: Copy the collection artifact into the box
+      ansible.builtin.copy:
+        src: "{{ potos_build_artifact.files[0].path }}"
+        dest: /tmp/potos-base.tar.gz
+        mode: "0644"
+
+    - name: Install the collection into the system collections path
+      ansible.builtin.command:
+        argv:
+          - ansible-galaxy
+          - collection
+          - install
+          - /tmp/potos-base.tar.gz
+          - --no-deps
+          - -p
+          - "{{ system_collections }}"
+          - --force
+      changed_when: true
+
+    - name: Create the dummy specs role source
+      ansible.builtin.file:
+        path: "{{ specs_roles_src }}/potos_specs_dummy/{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - tasks
+        - meta
+
+    - name: Write the dummy specs role tasks
+      ansible.builtin.copy:
+        src: fixtures/specs_dummy_role/tasks/main.yml
+        dest: "{{ specs_roles_src }}/potos_specs_dummy/tasks/main.yml"
+        mode: "0644"
+
+    - name: Write the dummy specs role metadata
+      ansible.builtin.copy:
+        src: fixtures/specs_dummy_role/meta/main.yml
+        dest: "{{ specs_roles_src }}/potos_specs_dummy/meta/main.yml"
+        mode: "0644"
+
+    - name: Initialise the dummy specs role git repo
+      ansible.builtin.shell:
+        cmd: |
+          set -eu
+          cd {{ specs_roles_src }}/potos_specs_dummy
+          git init -b main
+          git config user.email beast@xaviers-school.edu
+          git config user.name Beast
+          git add -A
+          git commit -m "fixture specs role"
+        creates: "{{ specs_roles_src }}/potos_specs_dummy/.git"
+
+    - name: Create the specs source tree
+      ansible.builtin.file:
+        path: "{{ specs_src }}"
+        state: directory
+        mode: "0755"
+
+    - name: Write the specs runtime.yml
+      ansible.builtin.copy:
+        src: fixtures/specs/runtime.yml
+        dest: "{{ specs_src }}/runtime.yml"
+        mode: "0644"
+
+    - name: Write the specs requirements.yml referencing the dummy role
+      ansible.builtin.template:
+        src: fixtures/specs/requirements.yml.j2
+        dest: "{{ specs_src }}/requirements.yml"
+        mode: "0644"
+
+    - name: Initialise the specs git repo
+      ansible.builtin.shell:
+        cmd: |
+          set -eu
+          cd {{ specs_src }}
+          git init -b main
+          git config user.email beast@xaviers-school.edu
+          git config user.name Beast
+          git add -A
+          git commit -m "fixture specs"
+        creates: "{{ specs_src }}/.git"
+
+    - name: Ensure /etc/potos exists
+      ansible.builtin.file:
+        path: /etc/potos
+        state: directory
+        mode: "0755"
+
+    - name: Write the system config
+      ansible.builtin.template:
+        src: fixtures/potos/config.yml.j2
+        dest: /etc/potos/config.yml
+        mode: "0644"
