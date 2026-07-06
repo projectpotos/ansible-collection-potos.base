@@ -1,0 +1,22 @@
+---
+- name: Validate that every step has an id and a uses
+  ansible.builtin.assert:
+    that:
+      - item.id is defined
+      - item.uses is defined
+    fail_msg: >-
+      Every step must define 'id' and 'uses'. Offending entry: {{ item }}
+    quiet: true
+  loop: "{{ steps_list }}"
+  loop_control:
+    label: "{{ item.id | default('<no id>') }}"
+
+- name: Fail on duplicate step ids
+  ansible.builtin.fail:
+    msg: >-
+      Step ids must be unique. Duplicates:
+      {{ steps_list | map(attribute='id') | list
+         | difference(steps_list | map(attribute='id') | unique | list) | unique | list }}
+  when: >-
+    (steps_list | map(attribute='id') | list | length)
+    != (steps_list | map(attribute='id') | unique | list | length)

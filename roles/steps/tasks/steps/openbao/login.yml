@@ -1,0 +1,136 @@
+---
+# Category: openbao / Step: login
+# Log in to OpenBao and output the client token. Optionally
+# installs OpenBao first (repo + package).
+#
+# NOTE: the OIDC flow is interactive, so this step is not fully e2e tested by molecule.
+#
+# inputs:
+#   url            str   required. Server address.
+#   role           str   optional. OIDC role to request.
+#   mount          str   default oidc. Auth mount path.
+#   method         str   default oidc. Auth method.
+#   callback_mode  str   optional. OIDC callbackmode, e.g. "device".
+#   callback_host  str   optional. OIDC callbackhost.
+#   listen_address str   optional. OIDC listenaddress.
+#   options        dict  optional. Extra OIDC login params (key=value).
+#   cli            str   optional. Cli command to use.
+#   browser  bool  default true. Auto-open the verification URL with xdg-open.
+#   notify   bool  default true. Show the verification URL/code in a yad dialog
+#                  while the login is pending.
+#   prompt   bool  default true. Show a "browser login starting" dialog first.
+#   install  bool  default true. Install OpenBao before logging in.
+#   repo     dict  repo from where to install OpenBao, with keys name, description, baseurl, gpgkey, gpgcheck, sslverify, sslcacert, metadata_expire.
+#   package  str   default openbao. Package to install when install=true.
+# outputs:
+#   token  str  the client token (secret)
+
+- name: "{{ step.uses }} ({{ step.id }}): Apply input defaults"
+  ansible.builtin.set_fact:
+    step_input: "{{ step_defaults | combine(step_input, recursive=True) }}"
+  vars:
+    step_defaults:
+      repo:
+        name: openbao
+        description: OpenBao
+        baseurl: "https://pkgs.openbao.org/rpm/$basearch"
+        gpgkey: "https://openbao.org/assets/openbao-gpg-pub-20240618.asc"
+        gpgcheck: true
+        sslverify: true
+        sslcacert: /etc/pki/tls/certs/ca-bundle.crt
+        metadata_expire: "300"
+      package: openbao
+      mount: oidc
+      method: oidc
+      browser: true
+      notify: true
+      prompt: true
+      install: true
+
+- name: "{{ step.uses }} ({{ step.id }}): Configure the OpenBao package repository"
+  ansible.builtin.yum_repository:
+    name: "{{ step_input.repo.name }}"
+    description: "{{ step_input.repo.description }}"
+    baseurl: "{{ step_input.repo.baseurl }}"
+    gpgkey: "{{ step_input.repo.gpgkey }}"
+    gpgcheck: "{{ step_input.repo.gpgcheck }}"
+    sslverify: "{{ step_input.repo.sslverify }}"
+    sslcacert: "{{ step_input.repo.sslcacert }}"
+    metadata_expire: "{{ step_input.repo.metadata_expire }}"
+  when: step_input.install | bool
+
+- name: "{{ step.uses }} ({{ step.id }}): Install OpenBao"
+  ansible.builtin.package:
+    name: "{{ step_input.package }}"
+    state: present
+  when: step_input.install | bool
+
+- name: "{{ step.uses }} ({{ step.id }}): Inform the user that a browser login is about to start"
+  projectpotos.base.yad:
+    dialog: message
+    title: "{{ steps_client_name }} OpenBao login"
+    text: |
+      An OIDC login will start now.
+
+      A window will appear with a link and a verification code. Open the link
+      on this or any other device to finish signing in.
+    fullscreen: true
+    borders: 20
+    align: center
+    image: "{{ steps_logo }}"
+    image_on_top: true
+  when: step_input.prompt | bool
+  tags:
+    - molecule-notest
+
+- name: "{{ step.uses }} ({{ step.id }}): Show the verification URL and code in a notification dialog"
+  ansible.builtin.debug:
+    msg: "OIDC verification URL: {{ lookup('ansible.builtin.env', 'OIDC_VERIFICATION_URL') }}, code: {{ lookup('ansible.builtin.env', 'OIDC_USER_CODE') }}"
+  tags:
+    - molecule-notest
+
+- name: "{{ step.uses }} ({{ step.id }}): Install the clipboard helper"
+  ansible.builtin.copy:
+    dest: "{{ steps_setup_dir }}/openbao-copy-url.sh"
+    mode: "0755"
+    content: |
+      #!/bin/sh
+      # Copy the OIDC verification URL to the Wayland clipboard. OIDC_VERIFICATION_URL
+      # is exported into this process's environment by projectpotos.base.openbao.
+      exec wl-copy -- "$OIDC_VERIFICATION_URL"
+  when: step_input.notify | bool
+
+- name: "{{ step.uses }} ({{ step.id }}): Build the notification command"
+  ansible.builtin.set_fact:
+    openbao_notify_command: >-
+      yad --title {{ (steps_client_name ~ ' OpenBao login') | quote }}
+      --image {{ steps_logo | quote }} --image-on-top
+      --borders 20 --fullscreen
+      --button=Copy URL:{{ steps_setup_dir }}/openbao-copy-url.sh
+      --button=Cancel:1
+      --text "$(printf 'Open this link on any device to finish signing in:\n\n%s\n\nVerification code: %s\n\nUse "Copy URL" to copy the link to the clipboard. This window closes automatically once you are done.' "$OIDC_VERIFICATION_URL" "$OIDC_USER_CODE")"
+  when: step_input.notify | bool
+
+- name: "{{ step.uses }} ({{ step.id }}): Perform the OIDC login"
+  projectpotos.base.openbao:
+    action: login
+    url: "{{ step_input.url }}"
+    role: "{{ step_input.role | default(omit) }}"
+    mount: "{{ step_input.mount }}"
+    method: "{{ step_input.method }}"
+    callback_mode: "{{ step_input.callback_mode | default(omit) }}"
+    callback_host: "{{ step_input.callback_host | default(omit) }}"
+    listen_address: "{{ step_input.listen_address | default(omit) }}"
+    options: "{{ step_input.options | default(omit) }}"
+    cli: "{{ step_input.cli | default(omit) }}"
+    browser: "{{ step_input.browser }}"
+    notify_command: "{{ openbao_notify_command if step_input.notify | bool else omit }}"
+  register: openbao_login
+  no_log: "{{ not steps_debug_no_log }}"
+
+- name: "{{ step.uses }} ({{ step.id }}): Register outputs"
+  ansible.builtin.include_tasks: steps/_register.yml
+  vars:
+    step_output:
+      token: "{{ openbao_login.token }}"
+    step_output_secret: true

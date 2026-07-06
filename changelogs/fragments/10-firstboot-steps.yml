@@ -1,6 +1,6 @@
 ---
 minor_changes:
-  - Introduced the ``potos_steps`` role, a declarative, ordered step framework
+  - Introduced the ``steps`` role, a declarative, ordered step framework
     whose steps can consume each other's outputs.
-  - Reworked the ``potos_firstboot`` role to use the new step framework
+  - Reworked the ``firstboot`` role to use the new step framework
     instead of hard-coded task files.

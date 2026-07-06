@@ -1,0 +1,18 @@
+---
+# Packages required by the wrapper script and ansible runs.
+basics_packages:
+  - git
+  - bc
+  - util-linux
+  - libnotify
+  - coreutils
+  - procps-ng
+  - python3
+  - python3-pip
+  - python3-virtualenv
+  - NetworkManager
+  - gawk
+  - yq
+
+# Pin ansible-core inside the virtualenv.
+basics_ansible_version: "2.20.6"

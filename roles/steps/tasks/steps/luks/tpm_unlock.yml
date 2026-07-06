@@ -1,0 +1,68 @@
+---
+# Category: luks / Step: tpm_unlock
+# Enroll the TPM2 as a LUKS unlock method (systemd-cryptenroll) so the disk
+# auto-unlocks when the measured boot state matches.
+#
+# inputs:
+#   passphrase            str   required. Existing LUKS passphrase that
+#                               authorizes enrollment, e.g.
+#                               "{{ steps.<luks-rotate-id>.passphrase }}".
+#   device                str   optional. Override crypttab discovery.
+#   tpm2_device           str   default auto.
+#   tpm2_pcrs             list  default []. Extra literal PCRs.
+#   tpm2_public_key       str   optional. PEM for the signed PCR-11 policy.
+#   tpm2_public_key_pcrs  list  default [11].
+#   tpm2_with_pin         bool  default false. Also require a PIN.
+#   pin                   str   the new PIN when tpm2_with_pin=true.
+#   wipe_slots            str   optional. Slots to wipe first (--wipe-slot).
+#   skip_if_unencrypted   bool  default true. No-op when no LUKS device exists.
+# outputs: none
+
+- name: "{{ step.uses }} ({{ step.id }}): Apply input defaults"
+  ansible.builtin.set_fact:
+    step_input: "{{ step_defaults | combine(step_input) }}"
+  vars:
+    step_defaults:
+      tpm2_device: auto
+      tpm2_pcrs: []
+      tpm2_public_key_pcrs: ["11"]
+      tpm2_with_pin: false
+      skip_if_unencrypted: true
+  no_log: "{{ not steps_debug_no_log }}"
+
+- name: "{{ step.uses }} ({{ step.id }}): Discover the LUKS device"
+  projectpotos.base.luks:
+    action: discover
+    device: "{{ step_input.device | default(omit) }}"
+  register: luks_tpm_info
+
+- name: "{{ step.uses }} ({{ step.id }}): Fail when no LUKS device and skipping is disabled"
+  ansible.builtin.fail:
+    msg: "luks/tpm_unlock found no LUKS device and skip_if_unencrypted is false."
+  when:
+    - not luks_tpm_info.encrypted
+    - not (step_input.skip_if_unencrypted | bool)
+
+- name: "{{ step.uses }} ({{ step.id }}): Enroll the TPM2 unlock method"
+  when: luks_tpm_info.encrypted
+  block:
+    - name: "{{ step.uses }} ({{ step.id }}): Validate the authorizing passphrase was provided"
+      ansible.builtin.assert:
+        that:
+          - step_input.passphrase | default('') | length > 0
+        fail_msg: "luks/tpm_unlock requires 'passphrase' (an existing LUKS passphrase)."
+        quiet: true
+
+    - name: "{{ step.uses }} ({{ step.id }}): Enroll the TPM2 as a LUKS keyslot"
+      projectpotos.base.luks:
+        action: enroll_tpm2
+        device: "{{ luks_tpm_info.device }}"
+        passphrase: "{{ step_input.passphrase }}"
+        tpm2_device: "{{ step_input.tpm2_device }}"
+        tpm2_pcrs: "{{ step_input.tpm2_pcrs }}"
+        tpm2_public_key: "{{ step_input.tpm2_public_key | default(omit) }}"
+        tpm2_public_key_pcrs: "{{ step_input.tpm2_public_key_pcrs }}"
+        tpm2_with_pin: "{{ step_input.tpm2_with_pin }}"
+        pin: "{{ step_input.pin | default(omit) }}"
+        wipe_slots: "{{ step_input.wipe_slots | default(omit) }}"
+      no_log: "{{ not steps_debug_no_log }}"

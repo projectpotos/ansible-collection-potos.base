@@ -1,0 +1,22 @@
+---
+## The ordered list of steps to run.
+steps_list: []
+
+## Directory the engine renders its shared helper scripts into (e.g. the
+## keyboard-layout picker shown by dialog steps).
+steps_setup_dir: /var/lib/potos/setup
+
+## Logo image shown in dialog (yad) steps.
+steps_logo: /usr/share/potos/logo.png
+
+## Short name used in dialog titles.
+steps_client_name: potos
+
+## Whether the keyboard-layout picker is offered in dialogs.
+steps_ask_keyboardlayout: true
+
+## Prompt shown in the keyboard-layout picker.
+steps_ask_select_keyboardlayout: "Please select your keyboard layout"
+
+## Debug.
+steps_debug_no_log: false

@@ -1,5 +1,0 @@
----
-- name: reload systemd
-  listen: "potos_basics_reload_systemd"
-  ansible.builtin.systemd:
-    daemon_reload: true

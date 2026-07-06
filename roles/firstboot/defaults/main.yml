@@ -1,0 +1,40 @@
+---
+# Custom commands to execute before the first boot role
+firstboot_precommands: []
+
+# Custom commands to execute after the first boot role
+firstboot_postcommands: []
+
+# Directory the wizard renders its helper scripts into
+firstboot_setup_dir: /var/lib/potos/setup
+
+# Logo shown in the firstboot dialogs.
+firstboot_logo: /usr/share/potos/logo.png
+
+# If user can select his keyboard layout
+firstboot_ask_keyboardlayout: true
+
+# Sentence to ask user to select a keyboard layout
+firstboot_ask_select_keyboardlayout: "Please select your keyboard layout"
+
+# Client name (only used to label dialogs)
+firstboot_client_name: "{{ potos_plays_client_short_name | default('potos') }}"
+
+## System config file on the managed node.
+firstboot_config_file: /etc/potos/config.yml
+
+## Extra roles to run after the default firstboot tasks.
+firstboot_extra_roles: []
+
+## Marker file written when firstboot has completed successfully.
+firstboot_done_marker: /var/lib/potos/firstboot.done
+
+## Path of the autostart .desktop file installed by the ISO.
+firstboot_autostart_file: /etc/xdg/autostart/potos-firstboot.desktop
+
+## When true, after a successful firstboot, enable+start the potos.timer (via
+## the projectpotos.base.basics role).
+firstboot_activate_timer: true
+
+## Debug
+firstboot_debug_no_log: false

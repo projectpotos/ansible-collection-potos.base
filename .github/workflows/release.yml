@@ -1,5 +1,5 @@
 ---
-name: Release potos.base
+name: Release projectpotos.base
 
 on:
   push:
@@ -28,7 +28,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
         with:
-          persist-credentials: false
+          persist-credentials: true # needed for pushing back to the repo
           fetch-depth: 0
 
       - name: Install uv
@@ -93,6 +93,6 @@ jobs:
       - name: Upload built collection artifact
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
-          name: potos-base-${{ steps.version.outputs.version }}
+          name: projectpotos-base-${{ steps.version.outputs.version }}
           path: dist/*.tar.gz
           if-no-files-found: error

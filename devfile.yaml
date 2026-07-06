@@ -1,7 +1,7 @@
 ---
 schemaVersion: 2.2.2
 metadata:
-  name: potos.base-a8a2a992
+  name: projectpotos.base-a8a2a992
 components:
   - name: tooling-container
     container:

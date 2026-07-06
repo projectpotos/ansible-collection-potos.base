@@ -1,0 +1,44 @@
+---
+- name: Load merged base configuration
+  ansible.builtin.import_tasks: load_config.yml
+
+- name: Install required packages
+  ansible.builtin.package:
+    name: "{{ basics_packages }}"
+    state: "{{ basics_packages_enforce_latest | ternary('latest', 'present') }}"
+
+- name: Ensure potos directories exist
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "{{ item.mode }}"
+  loop:
+    - { path: "{{ basics_etc_dir }}", mode: "0750" }
+    - { path: "{{ basics_state_dir }}", mode: "0750" }
+    - { path: "{{ basics_workdir }}", mode: "0750" }
+    - { path: "{{ basics_logdir }}", mode: "0750" }
+    - { path: "{{ basics_libexec_dir }}", mode: "0755" }
+    - { path: "{{ basics_inventory | dirname }}", mode: "0750" }
+
+- name: Determine FQDN
+  ansible.builtin.command:
+    cmd: hostname -f
+  register: basics_hostname
+  changed_when: false
+
+- name: Create ansible inventory file
+  ansible.builtin.copy:
+    dest: "{{ basics_inventory }}"
+    content: "{{ basics_hostname.stdout }} ansible_connection=local\n"
+    force: false
+    owner: root
+    group: root
+    mode: "0640"
+
+- name: Set up the ansible virtualenv
+  ansible.builtin.include_tasks: ansible-env.yml
+
+- name: Install wrapper script, systemd units, logrotate
+  ansible.builtin.include_tasks: ansible-pull.yml

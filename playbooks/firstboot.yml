@@ -8,16 +8,16 @@
     - name: Check if firstboot ran already
       ansible.builtin.stat:
         path: /var/lib/potos/firstboot.done
-      register: potos_firstboot_marker
+      register: firstboot_marker
 
     - name: End play if firstboot already completed
       ansible.builtin.meta: end_play
-      when: potos_firstboot_marker.stat.exists
+      when: firstboot_marker.stat.exists
 
   tasks:
     - name: Run the default firstboot wizard
       ansible.builtin.include_role:
-        name: potos.base.potos_firstboot
+        name: projectpotos.base.firstboot
 
     - name: Install and run firstboot_extra_roles from the system config
       when: (potos_config.firstboot_extra_roles | default([])) | length > 0
@@ -26,12 +26,12 @@
           ansible.builtin.tempfile:
             state: directory
             suffix: potos-firstboot-roles
-          register: potos_firstboot_extras_dir
+          register: firstboot_extras_dir
 
         - name: Write a requirements.yml for ansible-galaxy
           ansible.builtin.copy:
             content: "{{ potos_config.firstboot_extra_roles | to_nice_yaml }}"
-            dest: "{{ potos_firstboot_extras_dir.path }}/requirements.yml"
+            dest: "{{ firstboot_extras_dir.path }}/requirements.yml"
             owner: root
             group: root
             mode: "0644"
@@ -41,8 +41,8 @@
           ansible.builtin.command:
             cmd: >-
               ansible-galaxy role install
-              -r {{ potos_firstboot_extras_dir.path }}/requirements.yml
-              -p {{ potos_firstboot_extras_dir.path }}/roles
+              -r {{ firstboot_extras_dir.path }}/requirements.yml
+              -p {{ firstboot_extras_dir.path }}/roles
           changed_when: true
 
         - name: Run each extra firstboot role
@@ -53,18 +53,18 @@
             loop_var: _role
             label: "{{ _role.name }}"
           vars:
-            ansible_role_path: "{{ potos_firstboot_extras_dir.path }}/roles"
+            ansible_role_path: "{{ firstboot_extras_dir.path }}/roles"
 
       always:
         - name: Clean up extras dir
           ansible.builtin.file:
-            path: "{{ potos_firstboot_extras_dir.path }}"
+            path: "{{ firstboot_extras_dir.path }}"
             state: absent
-          when: potos_firstboot_extras_dir is defined
+          when: firstboot_extras_dir is defined
 
     - name: Apply base role
       ansible.builtin.include_role:
-        name: potos.base.potos_basics
+        name: projectpotos.base.basics
 
     - name: Remove the firstboot autostart entry
       ansible.builtin.file:

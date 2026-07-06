@@ -16,7 +16,7 @@
           - potos_ckl_script.stat.exists
           - potos_ckl_script.stat.executable
         fail_msg: >-
-          {{ potos_firstboot_setup_dir | default('/var/lib/potos/setup') }}/change-keyboard-layout.sh
+          {{ firstboot_setup_dir | default('/var/lib/potos/setup') }}/change-keyboard-layout.sh
           was not rendered or is not executable.
 
     - name: yad is installed
@@ -110,7 +110,7 @@
           (mode {{ potos_token_file.stat.mode | default('?') }}).
 
     - name: Decrypt the systemd-creds blob to verify the round-trip
-      potos.base.potos_systemd_creds:
+      projectpotos.base.systemd_creds:
         action: decrypt
         name: testcred
         input_path: /etc/potos/test.cred

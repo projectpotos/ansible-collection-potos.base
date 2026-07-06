@@ -1,0 +1,28 @@
+---
+# Category: openbao / Step: write
+# Write a KV v2 secret to OpenBao.
+#
+# inputs:
+#   url    str   required. Server address.
+#   token  str   required. Auth token (usually {{ steps.<login>.token }}).
+#   path   str   required. KV v2 secret path to write.
+#   data   dict  required. Key/value map to store.
+#   cli    str   optional. Cli command to use.
+# outputs:
+#   path  str  the path that was written
+
+- name: "{{ step.uses }} ({{ step.id }}): Write the secret"
+  projectpotos.base.openbao:
+    action: kv_put
+    url: "{{ step_input.url }}"
+    token: "{{ step_input.token }}"
+    path: "{{ step_input.path }}"
+    data: "{{ step_input.data }}"
+    cli: "{{ step_input.cli | default(omit) }}"
+  no_log: "{{ not steps_debug_no_log }}"
+
+- name: "{{ step.uses }} ({{ step.id }}): Register outputs"
+  ansible.builtin.include_tasks: steps/_register.yml
+  vars:
+    step_output:
+      path: "{{ step_input.path }}"

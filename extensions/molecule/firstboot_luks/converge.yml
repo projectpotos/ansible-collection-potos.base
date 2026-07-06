@@ -6,4 +6,4 @@
   tasks:
     - name: Run the firstboot role
       ansible.builtin.include_role:
-        name: potos.base.potos_firstboot
+        name: projectpotos.base.firstboot

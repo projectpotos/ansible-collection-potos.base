@@ -1,0 +1,100 @@
+---
+argument_specs:
+  main:
+    short_description: Install the base setup required for Potos periodic ansible runs.
+    description:
+      - This role sets up the base environment for Potos Linux Clients, including
+        periodic ansible run timers, a wrapper script for ansible-pull, a Python
+        virtualenv with ansible-core installed, and log rotation.
+    options:
+      basics_client_name:
+        type: str
+        default: potos
+      basics_etc_dir:
+        type: str
+        default: /etc/potos
+      basics_state_dir:
+        type: str
+        default: /var/lib/potos
+      basics_workdir:
+        type: str
+        default: /var/lib/potos/ansible
+      basics_virtenvdir:
+        type: str
+        default: /var/lib/potos/virtenv
+      basics_logdir:
+        type: str
+        default: /var/log/potos
+      basics_libexec_dir:
+        type: str
+        default: /usr/libexec/potos
+      basics_inventory:
+        type: str
+        default: /var/lib/potos/ansible/potos_inventory
+      basics_config_file:
+        type: str
+        default: /etc/potos/config.yml
+      basics_specs_token_backend:
+        type: str
+        default: file
+        choices: [file, systemd-creds]
+      basics_specs_token_file:
+        type: str
+        default: /etc/potos/specs_token
+      basics_specs_token_name:
+        type: str
+        default: specs-token
+      basics_ansible_vault_key_backend:
+        type: str
+        default: file
+        choices: [none, file, systemd-creds]
+      basics_ansible_vault_key_file:
+        type: str
+        default: /etc/potos/ansible_vault_key
+      basics_ansible_vault_key_name:
+        type: str
+        default: ansible-vault-key
+      basics_specs_url:
+        type: str
+        default: ""
+      basics_specs_branch:
+        type: str
+        default: main
+      basics_specs_clone_dir:
+        type: str
+        default: /var/lib/potos/specs
+      basics_specs_galaxy_dir:
+        type: str
+        default: /var/lib/potos/specs/.galaxy
+      basics_runtypes:
+        type: list
+        elements: dict
+        default:
+          - { runtype: daily, on_calendar: daily }
+          - { runtype: hourly, on_calendar: hourly }
+        options:
+          runtype:
+            type: str
+            required: true
+          on_calendar:
+            type: str
+            required: false
+      basics_timer_activate:
+        type: bool
+        default: false
+      basics_always_verbose:
+        type: bool
+        default: false
+      basics_enable_reboot_reminder:
+        type: bool
+        default: true
+      basics_reboot_reminder_days:
+        type: int
+        default: 10
+      basics_on_error_additional_lines:
+        type: list
+        elements: str
+        default: []
+      basics_packages_enforce_latest:
+        type: bool
+        default: false

@@ -5,7 +5,7 @@
   gather_facts: true
 
   vars:
-    potos_basics_timer_activate: false
+    basics_timer_activate: false
 
     box_venv: /var/lib/potos/virtenv
     box_inventory: /var/lib/potos/ansible/potos_inventory
@@ -14,9 +14,9 @@
     system_collections: /usr/share/ansible/collections
 
   tasks:
-    - name: Call the potos_basics role to ensure potos is installed
+    - name: Call the basics role to ensure potos is installed
       ansible.builtin.include_role:
-        name: potos.base.potos_basics
+        name: projectpotos.base.basics
 
     - name: Periodic stage 1 (prepare)
       ansible.builtin.command:
@@ -26,7 +26,7 @@
           - "{{ box_inventory }}"
           - -e
           - potos_runtype=daily
-          - potos.base.prepare
+          - projectpotos.base.prepare
       environment:
         ANSIBLE_COLLECTIONS_PATH: "{{ system_collections }}"
       changed_when: true
@@ -41,7 +41,7 @@
           - potos_runtype=daily
           - -e
           - "potos_specs_dir={{ specs_dir }}"
-          - potos.base.apply
+          - projectpotos.base.apply
       environment:
         ANSIBLE_COLLECTIONS_PATH: "{{ specs_galaxy }}/collections:{{ system_collections }}"
         ANSIBLE_ROLES_PATH: "{{ specs_galaxy }}/roles"
