@@ -1,6 +1,10 @@
 # Potos Base Collection
 
-This repository contains the `potos.base` Ansible Collection.
+[![CI](https://github.com/projectpotos/ansible-collection-potos.base/actions/workflows/tests.yml/badge.svg)](https://github.com/projectpotos/ansible-collection-potos.base/actions/workflows/tests.yml)
+[![Release projectpotos.base](https://github.com/projectpotos/ansible-collection-potos.base/actions/workflows/release.yml/badge.svg)](https://github.com/projectpotos/ansible-collection-potos.base/actions/workflows/release.yml)
+
+
+This repository contains the `projectpotos.base` Ansible Collection.
 
 <!--start requires_ansible-->
 ## Ansible version compatibility
@@ -26,30 +30,30 @@ Ansible filter plugin entry point.
 
 Name | Description
 --- | ---
-potos.base.resolve_step_refs|Render ``{{ steps.* }}`` and ``{{ ansible_facts.* }}`` refs in ``value``.
+projectpotos.base.resolve_step_refs|Render ``{{ steps.* }}`` and ``{{ ansible_facts.* }}`` refs in ``value``.
 
 ### Yad_password_validation filter plugins
 Ansible filter plugin entry point.
 
 Name | Description
 --- | ---
-potos.base.yad_password_validation|Return yad validations enforcing ``policy`` on ``password_field``.
+projectpotos.base.yad_password_validation|Return yad validations enforcing ``policy`` on ``password_field``.
 
 ### Modules
 Name | Description
 --- | ---
-[potos.base.potos_luks](https://github.com/projectpotos/ansible-collection-potos.base/blob/main/docs/potos.base.potos_luks_module.rst)|Do various LUKS operations
-[potos.base.potos_openbao](https://github.com/projectpotos/ansible-collection-potos.base/blob/main/docs/potos.base.potos_openbao_module.rst)|Interact with OpenBao KV engine
-[potos.base.potos_set_password](https://github.com/projectpotos/ansible-collection-potos.base/blob/main/docs/potos.base.potos_set_password_module.rst)|Set a local user's password using chpasswd
-[potos.base.potos_systemd_creds](https://github.com/projectpotos/ansible-collection-potos.base/blob/main/docs/potos.base.potos_systemd_creds_module.rst)|Encrypt or decrypt a secret with systemd-creds
-[potos.base.yad](https://github.com/projectpotos/ansible-collection-potos.base/blob/main/docs/potos.base.yad_module.rst)|Display a YAD (GTK) dialog and return the user's input
+[projectpotos.base.luks](https://github.com/projectpotos/ansible-collection-potos.base/blob/main/docs/projectpotos.base.luks_module.rst)|Do various LUKS operations
+[projectpotos.base.openbao](https://github.com/projectpotos/ansible-collection-potos.base/blob/main/docs/projectpotos.base.openbao_module.rst)|Interact with OpenBao KV engine
+[projectpotos.base.set_password](https://github.com/projectpotos/ansible-collection-potos.base/blob/main/docs/projectpotos.base.set_password_module.rst)|Set a local user's password using chpasswd
+[projectpotos.base.systemd_creds](https://github.com/projectpotos/ansible-collection-potos.base/blob/main/docs/projectpotos.base.systemd_creds_module.rst)|Encrypt or decrypt a secret with systemd-creds
+[projectpotos.base.yad](https://github.com/projectpotos/ansible-collection-potos.base/blob/main/docs/projectpotos.base.yad_module.rst)|Display a YAD (GTK) dialog and return the user's input
 
 <!--end collection content-->
 
 ## Using this collection
 
 ```bash
-    ansible-galaxy collection install potos.base
+    ansible-galaxy collection install projectpotos.base
 ```
 
 You can also include it in a `requirements.yml` file and install it via
@@ -57,23 +61,23 @@ You can also include it in a `requirements.yml` file and install it via
 
 ```yaml
 collections:
-  - name: potos.base
+  - name: projectpotos.base
 ```
 
 To upgrade the collection to the latest available version, run the following
 command:
 
 ```bash
-ansible-galaxy collection install potos.base --upgrade
+ansible-galaxy collection install projectpotos.base --upgrade
 ```
 
 You can also install a specific version of the collection, for example, if you
 need to downgrade when something is broken in the latest version (please report
 an issue in this repository). Use the following syntax where `X.Y.Z` can be any
-[available version](https://galaxy.ansible.com/potos/base):
+[available version](https://galaxy.ansible.com/projectpotos/base):
 
 ```bash
-ansible-galaxy collection install potos.base:==X.Y.Z
+ansible-galaxy collection install projectpotos.base:==X.Y.Z
 ```
 
 See
@@ -83,7 +87,7 @@ for more details.
 ## Release notes
 
 See the
-[changelog](https://github.com/ansible-collections/potos.base/tree/main/CHANGELOG.rst).
+[changelog](https://github.com/projectpotos/ansible-collection-potos.base/blob/main/CHANGELOG.rst).
 
 ## Roadmap
 

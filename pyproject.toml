@@ -1,7 +1,7 @@
 [project]
-name = "potos-base-dev"
+name = "projectpotos-base-dev"
 version = "0.0.0"
-description = "Development and test environment for the potos.base Ansible collection."
+description = "Development and test environment for the projectpotos.base Ansible collection."
 requires-python = ">=3.12"
 
 [dependency-groups]
@@ -43,7 +43,7 @@ extend-select = ["I"]
 "plugins/modules/*.py" = ["E402"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["ansible_collections.potos.base"]
+known-first-party = ["ansible_collections.projectpotos.base"]
 lines-after-imports = 2
 
 [tool.pytest.ini_options]

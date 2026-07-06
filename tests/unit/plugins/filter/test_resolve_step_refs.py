@@ -3,7 +3,7 @@
 # Copyright: (c) 2026, Potos Project
 # GNU General Public License v3.0+ (see LICENSE or https://www.gnu.org/licenses/gpl-3.0.txt)
 
-"""Unit tests for the ``potos.base.resolve_step_refs`` filter."""
+"""Unit tests for the ``projectpotos.base.resolve_step_refs`` filter."""
 
 from __future__ import annotations
 

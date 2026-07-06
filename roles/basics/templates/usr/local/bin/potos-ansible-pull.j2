@@ -1,0 +1,201 @@
+#!/usr/bin/env bash
+# {{ ansible_managed }}
+#
+# Runs the periodic potos ansible playbook against localhost to enforce
+# {{ basics_client_name }} client specification. Notifications and warnings
+# are displayed to the end user when:
+{% if basics_enable_reboot_reminder %}
+#  * the machine has not been rebooted for more than {{ basics_reboot_reminder_days }} days
+{% endif %}
+#  * ansible reports failures
+#
+# usage: {{ basics_client_name | lower }}-ansible-pull [-h|--help] [-v|--verbose] [-r|--runtype <runtype>]
+
+set -eu
+set -o pipefail
+
+WORKDIR="{{ basics_workdir }}"
+VENVDIR="{{ basics_virtenvdir }}"
+LOGDIR="{{ basics_logdir }}"
+INVENTORY="{{ basics_inventory }}"
+LOCK="/var/lock/{{ basics_client_name | lower }}.lock"
+SPECS_DIR="{{ basics_specs_clone_dir }}"
+SPECS_GALAXY_DIR="{{ basics_specs_galaxy_dir }}"
+VAULT_BACKEND="{{ basics_ansible_vault_key_backend }}"
+VAULT_KEY="{{ basics_ansible_vault_key_file }}"
+VAULT_NAME="{{ basics_ansible_vault_key_name }}"
+VAULT_PASS_HELPER="{{ basics_libexec_dir }}/potos-vault-pass.sh"
+CONFIG_FILE="{{ basics_config_file }}"
+LOG="${LOGDIR}/ansible-pull.log"
+ANSIBLE_PLAYBOOK="${VENVDIR}/bin/ansible-playbook"
+export ANSIBLE_COLLECTIONS_PATH="${ANSIBLE_COLLECTIONS_PATH:-/usr/share/ansible/collections}"
+
+die () { printf '%s\n' "$1" >&2; exit 1; }
+
+# Send a desktop notification to every active graphical session. The pull
+# service runs as root with no session bus of its own, so notify-send must be
+# re-targeted at each logged-in user's D-Bus; otherwise libnotify tries to
+# autolaunch a bus via X11 and fails.
+notify_users() {
+  local urgency="$1" body="$2" bus uid name
+  for bus in /run/user/*/bus; do
+    [ -S "${bus}" ] || continue
+    uid="${bus#/run/user/}"; uid="${uid%/bus}"
+    name="$(/usr/bin/id -nu "${uid}" 2>/dev/null)" || continue
+    /usr/sbin/runuser -u "${name}" -- /usr/bin/env \
+      XDG_RUNTIME_DIR="/run/user/${uid}" \
+      DBUS_SESSION_BUS_ADDRESS="unix:path=${bus}" \
+      /usr/bin/notify-send -u "${urgency}" --expire-time=0 "${body}" || true
+  done
+}
+
+Help() {
+    cat <<'HELPEOF'
+Pulls the latest potos specs and runs ansible against localhost
+to enforce {{ basics_client_name }} client specification.
+
+usage: {{ basics_client_name | lower }}-ansible-pull [-h|--help] [-v|--verbose] [-r|--runtype <runtype>]
+
+  -h|--help     Print this help.
+  -v|--verbose  Verbose mode (do not silence stdout/stderr).
+  -r|--runtype  Run type, one of: {% for r in basics_runtypes %}{{ r.runtype }}{% if not loop.last %}, {% endif %}{% endfor %}.
+HELPEOF
+}
+
+VERBOSE=false
+RUN_TYPE="{{ (basics_runtypes | selectattr('on_calendar', 'defined') | list | first).runtype | default('daily') }}"
+
+while :; do
+  case "${1:-}" in
+    -h|--help) Help; exit 0 ;;
+    -v|--verbose) VERBOSE=true; shift ;;
+    -r|--runtype)
+      case "${2:-}" in
+{% for r in basics_runtypes %}
+        {{ r.runtype }}) RUN_TYPE="{{ r.runtype }}" ;;
+{% endfor %}
+        *) die "Invalid run type '${2:-}'. Allowed: {% for r in basics_runtypes %}{{ r.runtype }}{% if not loop.last %}, {% endif %}{% endfor %}." ;;
+      esac
+      shift 2
+      ;;
+    --) shift; break ;;
+    -?*) printf 'WARN: unknown option (ignored): %s\n' "$1" >&2; shift ;;
+    *) break ;;
+  esac
+done
+
+{% if not basics_always_verbose %}
+if ! ${VERBOSE}; then exec >>"${LOG}" 2>&1; fi
+{% endif %}
+
+for tool in /usr/bin/awk /usr/bin/bc /usr/bin/date /usr/bin/env /usr/bin/flock \
+            /usr/bin/git /usr/bin/grep /usr/bin/id /usr/bin/mkdir \
+            /usr/bin/notify-send /usr/bin/sed /usr/sbin/runuser /usr/bin/tail \
+            /usr/bin/touch /usr/bin/tr /usr/bin/uptime /usr/bin/wall \
+            /usr/bin/nmcli /usr/bin/yq; do
+  [ -x "${tool}" ] || die "Required tool '${tool}' not available!"
+done
+
+# use flock to prevent concurrent runs
+mkdir -p /var/lock || die "Failed to create lock directory"
+[ -f "${LOCK}" ] || touch "${LOCK}" || die "Failed to create lock file"
+exec {flockfd}<"${LOCK}"
+/usr/bin/flock -n "${flockfd}" || die "Other instance already running, aborting"
+
+# Check connectivity
+[ $( LANG=C /usr/bin/nmcli -g CONNECTIVITY g status ) == "full" ] || die "Insufficient connectivity, aborting"
+
+mkdir -p "${WORKDIR}" "${LOGDIR}" || die "Failed to create work/log directories"
+
+# ansible-vault
+if [ -f "${CONFIG_FILE}" ]; then
+  _vk_backend="$(/usr/bin/yq '.credentials.ansible_vault_key.backend // ""' "${CONFIG_FILE}" 2>/dev/null || true)"
+  _vk_path="$(/usr/bin/yq '.credentials.ansible_vault_key.path // ""' "${CONFIG_FILE}" 2>/dev/null || true)"
+  _vk_name="$(/usr/bin/yq '.credentials.ansible_vault_key.name // ""' "${CONFIG_FILE}" 2>/dev/null || true)"
+  [ -n "${_vk_backend}" ] && VAULT_BACKEND="${_vk_backend}"
+  [ -n "${_vk_path}" ] && VAULT_KEY="${_vk_path}"
+  [ -n "${_vk_name}" ] && VAULT_NAME="${_vk_name}"
+fi
+
+VAULT_OPT=()
+case "${VAULT_BACKEND}" in
+  none)
+    ;;
+  systemd-creds)
+    export POTOS_VAULT_CRED_PATH="${VAULT_KEY}"
+    export POTOS_VAULT_CRED_NAME="${VAULT_NAME}"
+    VAULT_OPT=("--vault-password-file=${VAULT_PASS_HELPER}")
+    ;;
+  *)
+    if [ -f "${VAULT_KEY}" ]; then
+      VAULT_OPT=("--vault-password-file=${VAULT_KEY}")
+    fi
+    ;;
+esac
+
+VERBOSITY_OPT=()
+LEVEL=0
+if [ -f "${CONFIG_FILE}" ]; then
+  LEVEL="$(/usr/bin/yq '.debug.verbosity // 0' "${CONFIG_FILE}" 2>/dev/null)" || LEVEL=0
+fi
+[[ "${LEVEL}" =~ ^[0-9]+$ ]] || LEVEL=0
+if [ "${LEVEL}" -gt 0 ]; then
+  VERBOSITY_OPT=("-$(printf 'v%.0s' $(seq 1 "${LEVEL}"))")
+fi
+
+RC=0
+export ANSIBLE_LOG_PATH="${LOG}"
+
+echo "=== potos: stage 1 (prepare) - runtype=${RUN_TYPE} ===" >&2
+"${ANSIBLE_PLAYBOOK}" \
+  -i "${INVENTORY}" \
+  "${VAULT_OPT[@]}" \
+  "${VERBOSITY_OPT[@]}" \
+  -e "potos_runtype=${RUN_TYPE}" \
+  projectpotos.base.prepare \
+  || RC=$?
+
+# Skipped when stage 1 didn't produce a specs clone
+if [ "${RC}" -eq 0 ] && [ -f "${SPECS_DIR}/runtime.yml" ]; then
+  echo "=== potos: stage 2 (apply) - runtype=${RUN_TYPE} ===" >&2
+  STAGE2_INV_OPT=("-i" "${INVENTORY}")
+  if [ -d "${SPECS_DIR}/inventory" ]; then
+    STAGE2_INV_OPT+=("-i" "${SPECS_DIR}/inventory")
+  fi
+  ANSIBLE_COLLECTIONS_PATH="${SPECS_GALAXY_DIR}/collections:/usr/share/ansible/collections" \
+  ANSIBLE_ROLES_PATH="${SPECS_GALAXY_DIR}/roles" \
+    "${ANSIBLE_PLAYBOOK}" \
+      "${STAGE2_INV_OPT[@]}" \
+      "${VAULT_OPT[@]}" \
+      "${VERBOSITY_OPT[@]}" \
+      -e "potos_runtype=${RUN_TYPE}" \
+      -e "potos_specs_dir=${SPECS_DIR}" \
+      projectpotos.base.apply \
+      || RC=$?
+fi
+
+if [ "${RC}" -ne 0 ] || /usr/bin/grep -q 'failed=[1-9]' "${LOG}" 2>/dev/null; then
+  MSG="Attention: {{ basics_client_name }} ansible run (${RUN_TYPE}) failed.
+{% for line in basics_on_error_additional_lines %}
+{{ line }}
+{% endfor %}"
+  notify_users critical "${MSG}"
+  /usr/bin/wall "${MSG}" || true
+fi
+
+exec {flockfd}<&-
+
+{% if basics_enable_reboot_reminder %}
+UPTIME_DATE=$(/usr/bin/uptime --since | /usr/bin/awk '{print $1}' | /usr/bin/tr -d '-')
+TODAY=$(/usr/bin/date +%Y%m%d)
+DAYS_DIFF=$(/usr/bin/echo "( $(/usr/bin/date -d ${TODAY} +%s) - $(/usr/bin/date -d ${UPTIME_DATE} +%s)) / (24*3600)" | /usr/bin/bc)
+if [ "${DAYS_DIFF}" -gt "{{ basics_reboot_reminder_days }}" ]; then
+  UPTIME_MSG="Your $(hostname) has been up for ${DAYS_DIFF} days (> {{ basics_reboot_reminder_days }}).
+Consider rebooting to keep the system secure."
+  echo "${UPTIME_MSG}"
+  notify_users normal "${UPTIME_MSG}"
+  /usr/bin/wall "${UPTIME_MSG}" || true
+fi
+{% endif %}
+
+exit "${RC}"

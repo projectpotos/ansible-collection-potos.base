@@ -1,0 +1,62 @@
+---
+- name: Install logrotate configuration
+  ansible.builtin.template:
+    src: etc/logrotate.d/potos-ansible-pull.j2
+    dest: "/etc/logrotate.d/{{ basics_client_name | lower }}-ansible-pull"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Install the potos-ansible-pull wrapper script
+  ansible.builtin.template:
+    src: usr/local/bin/potos-ansible-pull.j2
+    dest: "/usr/local/bin/{{ basics_client_name | lower }}-ansible-pull"
+    owner: root
+    group: root
+    mode: "0750"
+
+- name: Install the ansible-vault systemd-creds password helper
+  ansible.builtin.template:
+    src: usr/libexec/potos/potos-vault-pass.sh.j2
+    dest: "{{ basics_libexec_dir }}/potos-vault-pass.sh"
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Install the templated systemd service
+  ansible.builtin.template:
+    src: etc/systemd/system/potos-ansible-pull@.service.j2
+    dest: "/etc/systemd/system/{{ basics_client_name | lower }}-ansible-pull@.service"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: basics_reload_systemd
+
+- name: Install one systemd timer per runtype that has an OnCalendar configuration
+  ansible.builtin.template:
+    src: etc/systemd/system/potos-ansible-pull.timer.j2
+    dest: "/etc/systemd/system/{{ basics_client_name | lower }}-ansible-pull-{{ item.runtype }}.timer"
+    owner: root
+    group: root
+    mode: "0644"
+  vars:
+    runtype: "{{ item.runtype }}"
+    on_calendar: "{{ item.on_calendar }}"
+  loop: "{{ basics_runtypes | selectattr('on_calendar', 'defined') | list }}"
+  loop_control:
+    label: "{{ item.runtype }}"
+  notify: basics_reload_systemd
+
+- name: Flush handlers to reload systemd
+  ansible.builtin.meta: flush_handlers
+
+- name: Activate or deactivate the potos timers
+  ansible.builtin.systemd:
+    name: "{{ basics_client_name | lower }}-ansible-pull-{{ item }}.timer"
+    enabled: "{{ basics_timer_activate }}"
+    state: "{{ 'started' if basics_timer_activate else 'stopped' }}"
+    masked: false
+  loop: >-
+    {{ basics_runtypes
+       | selectattr('on_calendar', 'defined')
+       | map(attribute='runtype') | list }}

@@ -1,0 +1,35 @@
+---
+- name: Run pre-commands
+  ansible.builtin.shell:
+    cmd: "{{ item }}"
+  loop: "{{ firstboot_precommands }}"
+  changed_when: true
+  when:
+    - firstboot_precommands is iterable
+    - firstboot_precommands is not string
+    - firstboot_precommands is not mapping
+
+- name: Load the firstboot step list from the system config
+  ansible.builtin.include_tasks: load_config.yml
+
+- name: Run the configured firstboot steps via the step engine
+  ansible.builtin.include_role:
+    name: projectpotos.base.steps
+  vars:
+    steps_list: "{{ firstboot_step_list }}"
+    steps_setup_dir: "{{ firstboot_setup_dir }}"
+    steps_logo: "{{ firstboot_logo }}"
+    steps_client_name: "{{ firstboot_client_name }}"
+    steps_ask_keyboardlayout: "{{ firstboot_ask_keyboardlayout }}"
+    steps_ask_select_keyboardlayout: "{{ firstboot_ask_select_keyboardlayout }}"
+    steps_debug_no_log: "{{ firstboot_debug_no_log }}"
+
+- name: Run post-commands
+  ansible.builtin.shell:
+    cmd: "{{ item }}"
+  loop: "{{ firstboot_postcommands }}"
+  changed_when: true
+  when:
+    - firstboot_postcommands is iterable
+    - firstboot_postcommands is not string
+    - firstboot_postcommands is not mapping

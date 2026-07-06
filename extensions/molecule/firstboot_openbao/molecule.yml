@@ -14,7 +14,7 @@ platforms:
     systemd: true
     groups:
       - instance
-    network: molecule_potos_openbao
+    network: molecule_openbao
 
   - name: potos-firstboot-openbao-server
     image: "ghcr.io/openbao/openbao:2.5.5"
@@ -28,7 +28,7 @@ platforms:
       - -dev-listen-address=0.0.0.0:8200
     groups:
       - openbao_server
-    network: molecule_potos_openbao
+    network: molecule_openbao
 
 provisioner:
   name: ansible

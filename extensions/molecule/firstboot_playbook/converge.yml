@@ -1,3 +1,3 @@
 ---
 - name: Converge
-  import_playbook: potos.base.firstboot
+  import_playbook: projectpotos.base.firstboot

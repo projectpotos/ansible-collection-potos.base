@@ -3,7 +3,7 @@
 
 """Resolve ``{{ steps.<id>.<field> }}`` references.
 
-This filter module is a helper to resolve the templated outputs from  ``potos_steps``.
+This filter module is a helper to resolve the templated outputs from  ``steps``.
 It builds a new jinja2 environment, exposing all step outputs and combines them
 with ansible facts. It also exposes all of ansible's builtin filters, so that
 they can be used in the step inputs.

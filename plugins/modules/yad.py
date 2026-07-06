@@ -230,7 +230,7 @@ author:
 
 EXAMPLES = r"""
 - name: Ask for a hostname with regex validation
-  potos.base.yad:
+  projectpotos.base.yad:
     dialog: form
     title: "Setup"
     text: "Please enter your hostname"
@@ -256,7 +256,7 @@ EXAMPLES = r"""
   register: hostname_dialog
 
 - name: Ask for a new user account
-  potos.base.yad:
+  projectpotos.base.yad:
     dialog: form
     title: "Setup"
     text: "Please enter your new credentials"
@@ -281,7 +281,7 @@ EXAMPLES = r"""
   no_log: true
 
 - name: Verify an existing LUKS passphrase via custom command
-  potos.base.yad:
+  projectpotos.base.yad:
     dialog: form
     title: "Disk encryption"
     fields:
@@ -295,7 +295,7 @@ EXAMPLES = r"""
   no_log: true
 
 - name: Let the user pick a keyboard layout
-  potos.base.yad:
+  projectpotos.base.yad:
     dialog: list
     width: 600
     height: 600

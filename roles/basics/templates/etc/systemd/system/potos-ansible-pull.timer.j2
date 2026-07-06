@@ -1,0 +1,14 @@
+# {{ basics_client_name }}-ansible-pull-{{ runtype }}.timer
+# {{ ansible_managed }}
+[Unit]
+Description=Runs ansible pull for {{ basics_client_name }} client ({{ runtype }})
+AssertPathExists={{ basics_workdir }}
+
+[Timer]
+Unit={{ basics_client_name | lower }}-ansible-pull@{{ runtype }}.service
+OnCalendar={{ on_calendar }}
+Persistent=true
+RandomizedDelaySec=5min
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,64 @@
+---
+# Short client name. Used for unit / file naming and log labels.
+basics_client_name: "{{ potos_plays_client_short_name | default('potos') }}"
+
+# On-disk layout
+basics_etc_dir: /etc/potos
+basics_state_dir: "/var/lib/{{ basics_client_name | lower }}"
+basics_workdir: "{{ basics_state_dir }}/ansible"
+basics_virtenvdir: "{{ basics_state_dir }}/virtenv"
+basics_logdir: "/var/log/{{ basics_client_name | lower }}"
+basics_libexec_dir: /usr/libexec/potos
+basics_inventory: "{{ basics_workdir }}/{{ basics_client_name | lower }}_inventory"
+
+# Files written by the installer / firstboot wizard
+basics_config_file: "{{ basics_etc_dir }}/config.yml"
+
+# Specs-repo clone token. Two storage backends are supported (overridable from
+# /etc/potos/config.yml -> credentials.specs_token.*):
+#   file          plaintext file at basics_specs_token_file (default).
+#   systemd-creds encrypted blob at basics_specs_token_file, decrypted at
+#                 run time with `systemd-creds decrypt --name=<name>`.
+basics_specs_token_backend: file
+basics_specs_token_file: "{{ basics_etc_dir }}/specs_token"
+basics_specs_token_name: specs-token
+
+# Ansible-vault password source for the periodic runs. Backends (overridable
+# from /etc/potos/config.yml -> credentials.ansible_vault_key.*):
+#   none          do not pass a vault password file.
+#   file          plaintext file at basics_ansible_vault_key_file; used
+#                 only if it exists (default, backwards compatible).
+#   systemd-creds encrypted blob, decrypted on the fly by potos-vault-pass.sh.
+basics_ansible_vault_key_backend: file
+basics_ansible_vault_key_file: "{{ basics_etc_dir }}/ansible_vault_key"
+basics_ansible_vault_key_name: ansible-vault-key
+
+# Specs repository config
+basics_specs_url: ""
+basics_specs_branch: "main"
+basics_specs_clone_dir: "{{ basics_state_dir }}/specs"
+
+# Per-clone galaxy dir. Collections / roles declared in
+# <specs>/requirements.yml are installed here on every run, so they get the
+# same wipe-and-reinstall treatment as the specs tree itself.
+basics_specs_galaxy_dir: "{{ basics_specs_clone_dir }}/.galaxy"
+
+# Run types. Each entry with on_calendar gets a systemd timer.
+basics_runtypes:
+  - runtype: daily
+    on_calendar: daily
+  - runtype: hourly
+    on_calendar: hourly
+
+# When false, install the wrapper + units but do not enable/start the timers.
+basics_timer_activate: true
+
+# Wrapper script behaviour
+basics_always_verbose: false
+basics_enable_reboot_reminder: true
+basics_reboot_reminder_days: 10
+basics_on_error_additional_lines:
+  - "Contact your local administrator at admin@example.com"
+
+# Package management
+basics_packages_enforce_latest: false

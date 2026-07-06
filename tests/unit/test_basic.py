@@ -1,4 +1,4 @@
-"""Unit tests for potos.base."""
+"""Unit tests for projectpotos.base."""
 
 
 def test_basic() -> None:

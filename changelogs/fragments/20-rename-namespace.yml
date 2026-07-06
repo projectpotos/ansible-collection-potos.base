@@ -1,0 +1,12 @@
+---
+breaking_changes:
+  - The collection namespace changed from ``potos`` to ``projectpotos``.
+    All content must now be referenced as ``projectpotos.base.*``.
+  - Renamed the modules ``potos_luks``, ``potos_openbao``,
+    ``potos_set_password`` and ``potos_systemd_creds`` to ``luks``,
+    ``openbao``, ``set_password`` and ``systemd_creds``.
+  - Renamed the roles ``potos_basics``, ``potos_firstboot`` and
+    ``potos_steps`` to ``basics``, ``firstboot`` and ``steps``.
+  - Renamed all role variables to match the new role names, e.g.
+    ``potos_basics_*`` becomes ``basics_*``, ``potos_firstboot_*``
+    becomes ``firstboot_*`` and ``potos_steps_*`` becomes ``steps_*``.

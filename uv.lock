@@ -807,7 +807,7 @@ wheels = [
 ]
 
 [[package]]
-name = "potos-base-dev"
+name = "projectpotos-base-dev"
 version = "0.0.0"
 source = { virtual = "." }
 

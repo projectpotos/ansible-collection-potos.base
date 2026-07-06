@@ -3,7 +3,7 @@
 
 # See https://docs.ansible.com/ansible/latest/dev_guide/collections_galaxy_meta.html
 
-namespace: "potos"
+namespace: "projectpotos"
 name: "base"
 version: 0.0.0
 readme: README.md

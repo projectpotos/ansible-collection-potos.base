@@ -1,0 +1,32 @@
+---
+- name: Check for the Potos system config file
+  ansible.builtin.stat:
+    path: "{{ firstboot_config_file }}"
+  register: firstboot_config_stat
+
+- name: Fail when the system config is missing
+  ansible.builtin.fail:
+    msg: >-
+      The Potos system config was not found at {{ firstboot_config_file }}
+      on the managed machine.
+  when: not firstboot_config_stat.stat.exists
+
+- name: Read the Potos system config
+  ansible.builtin.slurp:
+    src: "{{ firstboot_config_file }}"
+  register: firstboot_config_raw
+
+- name: Parse the Potos system config
+  ansible.builtin.set_fact:
+    firstboot_config: "{{ firstboot_config_raw.content | b64decode | from_yaml }}"
+
+- name: Parse the firstboot step list from the system config
+  ansible.builtin.set_fact:
+    firstboot_step_list: >-
+      {{ firstboot_config.firstboot.steps | default([], true) }}
+
+- name: Apply debug settings from the system config
+  ansible.builtin.set_fact:
+    firstboot_debug_no_log: >-
+      {{ (firstboot_config.debug | default({}, true)).no_log
+         | default(firstboot_debug_no_log) | bool }}

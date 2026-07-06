@@ -48,7 +48,7 @@
           {{ openbao_marker_data }}
 
     - name: Confirm the secret really landed on the server
-      potos.base.potos_openbao:
+      projectpotos.base.openbao:
         action: kv_get
         url: http://potos-firstboot-openbao-server:8200
         token: root

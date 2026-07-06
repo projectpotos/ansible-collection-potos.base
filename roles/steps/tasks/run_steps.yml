@@ -1,0 +1,11 @@
+---
+# We need to dispatch each step one by one, in order to resolve any "{{ steps.<id>.<field> }}" references
+# in the step's inputs, which may reference outputs of earlier steps.
+# This is done by including run_one_step.yml for each step in the list.
+
+- name: Dispatch steps
+  ansible.builtin.include_tasks: run_one_step.yml
+  loop: "{{ steps_list }}"
+  loop_control:
+    loop_var: step
+    label: "{{ step.id }} ({{ step.uses }})"

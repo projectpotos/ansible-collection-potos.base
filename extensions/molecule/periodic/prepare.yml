@@ -45,7 +45,7 @@
             suffix: potos-build
           register: potos_build_dir
 
-        - name: Build the potos.base collection artifact
+        - name: Build the projectpotos.base collection artifact
           ansible.builtin.command:
             argv:
               - ansible-galaxy
@@ -60,7 +60,7 @@
         - name: Locate the built artifact
           ansible.builtin.find:
             paths: "{{ potos_build_dir.path }}"
-            patterns: potos-base-*.tar.gz
+            patterns: projectpotos-base-*.tar.gz
           register: potos_build_artifact
 
     - name: Copy the collection artifact into the box

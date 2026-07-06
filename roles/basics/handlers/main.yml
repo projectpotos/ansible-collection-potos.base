@@ -1,0 +1,5 @@
+---
+- name: reload systemd
+  listen: "basics_reload_systemd"
+  ansible.builtin.systemd:
+    daemon_reload: true

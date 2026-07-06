@@ -1,0 +1,8 @@
+# {{ ansible_managed }}
+{{ basics_logdir }}/*.log {
+rotate 52
+weekly
+compress
+missingok
+notifempty
+}

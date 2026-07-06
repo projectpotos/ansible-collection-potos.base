@@ -1,0 +1,49 @@
+---
+argument_specs:
+  main:
+    short_description: Reusable, data-driven step engine.
+    description:
+      - Runs a configurable, ordered list of steps supplied by the caller in
+        C(steps_list). Each step takes custom inputs and may publish
+        outputs consumed by later steps via C({{ steps.<id>.<field> }})
+        references.
+      - This role intentionally excludes any default configuration. It only
+        provides the engine to run steps, and the caller is expected to supply
+        the step list and any other configuration via role parameters.
+    options:
+      steps_list:
+        description:
+          - The ordered list of steps to run. Each entry is a dict with C(id)
+            and C(uses) (required), and optional C(when) and C(input).
+        type: list
+        elements: dict
+        default: []
+      steps_setup_dir:
+        description:
+          - Directory the engine renders shared helper scripts into (e.g. the
+            keyboard-layout picker shown by dialog steps).
+        type: str
+        default: /var/lib/potos/setup
+      steps_logo:
+        description:
+          - Logo image shown in dialog (yad) steps.
+        type: str
+        default: /usr/share/potos/logo.png
+      steps_client_name:
+        description: Short client name used in dialog titles.
+        type: str
+        default: potos
+      steps_ask_keyboardlayout:
+        description: Whether the keyboard-layout picker is offered in dialogs.
+        type: bool
+        default: true
+      steps_ask_select_keyboardlayout:
+        description: Prompt shown in the keyboard-layout picker.
+        type: str
+        default: Please select your keyboard layout
+      steps_debug_no_log:
+        description:
+          - When true, tasks that would hide secret values (no_log) reveal them
+            instead. Leave false in production.
+        type: bool
+        default: false

@@ -1,0 +1,30 @@
+---
+- name: Ensure the dialog tooling is installed
+  ansible.builtin.package:
+    name:
+      - yad
+      - wl-clipboard
+    state: present
+
+- name: Ensure the step setup directory exists
+  ansible.builtin.file:
+    path: "{{ steps_setup_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Render the keyboard-layout helper script
+  ansible.builtin.template:
+    src: change-keyboard-layout.j2
+    dest: "{{ steps_setup_dir }}/change-keyboard-layout.sh"
+    mode: "0755"
+
+- name: Validate the step list
+  ansible.builtin.include_tasks: validate.yml
+
+- name: Initialize the step output registry
+  ansible.builtin.set_fact:
+    steps_registry: {}
+    steps: {}
+
+- name: Run the configured steps
+  ansible.builtin.include_tasks: run_steps.yml

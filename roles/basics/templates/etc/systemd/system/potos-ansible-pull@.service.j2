@@ -1,0 +1,11 @@
+# {{ basics_client_name }}-ansible-pull@.service
+# {{ ansible_managed }}
+[Unit]
+Description=Runs ansible pull for {{ basics_client_name }} client ({{ '%i' }})
+AssertPathExists={{ basics_workdir }}
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/{{ basics_client_name | lower }}-ansible-pull -r %i

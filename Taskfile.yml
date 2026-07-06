@@ -1,7 +1,7 @@
 ---
 version: "3"
 
-# Developer task runner for the potos.base collection (https://taskfile.dev).
+# Developer task runner for the projectpotos.base collection (https://taskfile.dev).
 # All tasks run inside the uv-managed environment (see CONTRIBUTING).
 
 vars:
@@ -61,9 +61,9 @@ tasks:
     cmds:
       - defer: rm -rf {{.SANITY_DIR}}
       - uv run ansible-galaxy collection build --output-path {{.SANITY_DIR}} --force
-      - uv run ansible-galaxy collection install {{.SANITY_DIR}}/potos-base-*.tar.gz -p {{.SANITY_DIR}}/collections --force
+      - uv run ansible-galaxy collection install {{.SANITY_DIR}}/projectpotos-base-*.tar.gz -p {{.SANITY_DIR}}/collections --force
       - cmd: >-
-          cd {{.SANITY_DIR}}/collections/ansible_collections/potos/base &&
+          cd {{.SANITY_DIR}}/collections/ansible_collections/projectpotos/base &&
           uv run --project {{.ROOT_DIR}} ansible-test sanity --local --requirements
 
   test:

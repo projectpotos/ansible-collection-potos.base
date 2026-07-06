@@ -1,0 +1,32 @@
+---
+# Category: openbao / Step: read
+# Read a KV v2 secret from OpenBao.
+#
+# inputs:
+#   url    str  required. Server address.
+#   token  str  required. Auth token (usually {{ steps.<login>.token }}).
+#   path   str  required. KV v2 secret path.
+#   field  str  optional. Return only this field's value as 'value'.
+#   cli    str  optional. Cli command to use.
+# outputs:
+#   data   dict  the secret's key/value data
+#   value  str   the requested field's value (when 'field' is set)
+
+- name: "{{ step.uses }} ({{ step.id }}): Read the secret"
+  projectpotos.base.openbao:
+    action: kv_get
+    url: "{{ step_input.url }}"
+    token: "{{ step_input.token }}"
+    path: "{{ step_input.path }}"
+    field: "{{ step_input.field | default(omit) }}"
+    cli: "{{ step_input.cli | default(omit) }}"
+  register: openbao_read
+  no_log: "{{ not steps_debug_no_log }}"
+
+- name: "{{ step.uses }} ({{ step.id }}): Register outputs"
+  ansible.builtin.include_tasks: steps/_register.yml
+  vars:
+    step_output:
+      data: "{{ openbao_read.data }}"
+      value: "{{ openbao_read.value | default('') }}"
+    step_output_secret: true
