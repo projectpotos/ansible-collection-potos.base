@@ -1,4 +1,4 @@
-# {{ basics_client_name }}-ansible-pull@.service
+# potos-ansible-pull@.service
 # {{ ansible_managed }}
 [Unit]
 Description=Runs ansible pull for {{ basics_client_name }} client ({{ '%i' }})
@@ -8,4 +8,4 @@ After=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=/usr/local/bin/{{ basics_client_name | lower }}-ansible-pull -r %i
+ExecStart=/usr/local/bin/potos-ansible-pull -r %i

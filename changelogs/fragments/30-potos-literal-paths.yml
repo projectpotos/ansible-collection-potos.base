@@ -1,0 +1,10 @@
+---
+breaking_changes:
+  - All filenames, paths and systemd units installed by the ``basics`` role now
+    use literal ``potos`` instead of the short client name -
+    ``/var/lib/potos``, ``/var/log/potos``, ``potos_inventory``,
+    ``/usr/local/bin/potos-ansible-pull``, ``potos-ansible-pull@.service``,
+    ``potos-ansible-pull-<runtype>.timer``,
+    ``/etc/logrotate.d/potos-ansible-pull`` and ``/var/lock/potos.lock``.
+    ``basics_client_name`` is a display label only (unit descriptions, dialog
+    titles, notifications).
