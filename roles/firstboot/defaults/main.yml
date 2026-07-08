@@ -17,8 +17,9 @@ firstboot_ask_keyboardlayout: true
 # Sentence to ask user to select a keyboard layout
 firstboot_ask_select_keyboardlayout: "Please select your keyboard layout"
 
-# Client name (only used to label dialogs)
-firstboot_client_name: "{{ potos_plays_client_short_name | default('potos') }}"
+# Short client name, used to label dialogs. Overridden at run time by
+# client_name.short from the system config (see load_config.yml).
+firstboot_client_name: potos
 
 ## System config file on the managed node.
 firstboot_config_file: /etc/potos/config.yml
