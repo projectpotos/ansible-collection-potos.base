@@ -4,7 +4,7 @@
 #
 # Provide exactly one of 'command' or 'script'.
 #
-# inputs (step_input):
+# inputs:
 #   command      str   The command line to run.
 #   script       str   A full script. It is written to a temp dir, made
 #                      executable and run.
@@ -16,6 +16,7 @@
 #   secret       bool  default true. Mark the captured stdout secret (no_log).
 # outputs:
 #   stdout  str  the command's stdout, stripped of surrounding whitespace
+#   stderr  str  the command's stderr, stripped of surrounding whitespace
 #   rc      int  the command's return code
 
 - name: "{{ step.uses }} ({{ step.id }}): Apply input defaults"
@@ -74,6 +75,7 @@
       vars:
         step_output:
           stdout: "{{ script_run_result.stdout | default('') | trim }}"
+          stderr: "{{ script_run_result.stderr | default('') | trim }}"
           rc: "{{ script_run_result.rc | default(0) }}"
         step_output_secret: "{{ step_input.secret | bool }}"
 
