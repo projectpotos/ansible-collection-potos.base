@@ -9,7 +9,7 @@
 {% endif %}
 #  * ansible reports failures
 #
-# usage: {{ basics_client_name | lower }}-ansible-pull [-h|--help] [-v|--verbose] [-r|--runtype <runtype>]
+# usage: potos-ansible-pull [-h|--help] [-v|--verbose] [-r|--runtype <runtype>]
 
 set -eu
 set -o pipefail
@@ -18,7 +18,7 @@ WORKDIR="{{ basics_workdir }}"
 VENVDIR="{{ basics_virtenvdir }}"
 LOGDIR="{{ basics_logdir }}"
 INVENTORY="{{ basics_inventory }}"
-LOCK="/var/lock/{{ basics_client_name | lower }}.lock"
+LOCK="/var/lock/potos.lock"
 SPECS_DIR="{{ basics_specs_clone_dir }}"
 SPECS_GALAXY_DIR="{{ basics_specs_galaxy_dir }}"
 VAULT_BACKEND="{{ basics_ansible_vault_key_backend }}"
@@ -54,7 +54,7 @@ Help() {
 Pulls the latest potos specs and runs ansible against localhost
 to enforce {{ basics_client_name }} client specification.
 
-usage: {{ basics_client_name | lower }}-ansible-pull [-h|--help] [-v|--verbose] [-r|--runtype <runtype>]
+usage: potos-ansible-pull [-h|--help] [-v|--verbose] [-r|--runtype <runtype>]
 
   -h|--help     Print this help.
   -v|--verbose  Verbose mode (do not silence stdout/stderr).

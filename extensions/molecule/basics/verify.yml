@@ -3,20 +3,18 @@
   hosts: all
   become: true
   gather_facts: false
-  vars:
-    potos_client: potos
   tasks:
     - name: Stat the artifacts the role installs
       ansible.builtin.stat:
         path: "{{ item }}"
       loop:
-        - "/usr/local/bin/{{ potos_client }}-ansible-pull"
-        - "/etc/systemd/system/{{ potos_client }}-ansible-pull@.service"
-        - "/etc/systemd/system/{{ potos_client }}-ansible-pull-daily.timer"
-        - "/etc/systemd/system/{{ potos_client }}-ansible-pull-hourly.timer"
-        - "/etc/logrotate.d/{{ potos_client }}-ansible-pull"
-        - "/var/lib/{{ potos_client }}/ansible/{{ potos_client }}_inventory"
-        - "/var/lib/{{ potos_client }}/virtenv/bin/ansible"
+        - /usr/local/bin/potos-ansible-pull
+        - /etc/systemd/system/potos-ansible-pull@.service
+        - /etc/systemd/system/potos-ansible-pull-daily.timer
+        - /etc/systemd/system/potos-ansible-pull-hourly.timer
+        - /etc/logrotate.d/potos-ansible-pull
+        - /var/lib/potos/ansible/potos_inventory
+        - /var/lib/potos/virtenv/bin/ansible
       register: basics_artifacts
 
     - name: All expected artifacts exist
@@ -30,7 +28,7 @@
 
     - name: Query the daily timer state (installed but not enabled)
       ansible.builtin.systemd:
-        name: "{{ potos_client }}-ansible-pull-daily.timer"
+        name: potos-ansible-pull-daily.timer
       register: potos_timer_state
       changed_when: false
 

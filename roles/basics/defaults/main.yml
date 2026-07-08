@@ -5,12 +5,12 @@ basics_client_name: potos
 
 # On-disk layout
 basics_etc_dir: /etc/potos
-basics_state_dir: "/var/lib/{{ basics_client_name | lower }}"
+basics_state_dir: /var/lib/potos
 basics_workdir: "{{ basics_state_dir }}/ansible"
 basics_virtenvdir: "{{ basics_state_dir }}/virtenv"
-basics_logdir: "/var/log/{{ basics_client_name | lower }}"
+basics_logdir: /var/log/potos
 basics_libexec_dir: /usr/libexec/potos
-basics_inventory: "{{ basics_workdir }}/{{ basics_client_name | lower }}_inventory"
+basics_inventory: "{{ basics_workdir }}/potos_inventory"
 
 # Files written by the installer / firstboot wizard
 basics_config_file: "{{ basics_etc_dir }}/config.yml"
