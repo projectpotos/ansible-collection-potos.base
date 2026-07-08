@@ -326,6 +326,7 @@ def run_oidc_login(
         stdout=PIPE,
         stderr=PIPE,
         text=True,
+        start_new_session=True,
     )
     out_buf: list[str] = []
     err_buf: list[str] = []
