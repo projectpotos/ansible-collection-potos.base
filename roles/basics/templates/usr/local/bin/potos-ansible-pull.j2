@@ -89,7 +89,7 @@ if ! ${VERBOSE}; then exec >>"${LOG}" 2>&1; fi
 {% endif %}
 
 for tool in /usr/bin/awk /usr/bin/bc /usr/bin/date /usr/bin/env /usr/bin/flock \
-            /usr/bin/git /usr/bin/grep /usr/bin/id /usr/bin/mkdir \
+            /usr/bin/git /usr/bin/id /usr/bin/mkdir \
             /usr/bin/notify-send /usr/bin/sed /usr/sbin/runuser /usr/bin/tail \
             /usr/bin/touch /usr/bin/tr /usr/bin/uptime /usr/bin/wall \
             /usr/bin/nmcli /usr/bin/yq; do
@@ -174,7 +174,7 @@ if [ "${RC}" -eq 0 ] && [ -f "${SPECS_DIR}/runtime.yml" ]; then
       || RC=$?
 fi
 
-if [ "${RC}" -ne 0 ] || /usr/bin/grep -q 'failed=[1-9]' "${LOG}" 2>/dev/null; then
+if [ "${RC}" -ne 0 ]; then
   MSG="Attention: {{ basics_client_name }} ansible run (${RUN_TYPE}) failed.
 {% for line in basics_on_error_additional_lines %}
 {{ line }}
