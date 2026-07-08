@@ -1,0 +1,3 @@
+---
+bugfixes:
+  - The copy button shown by the ``openbao/login`` step doesn't crash anymore.

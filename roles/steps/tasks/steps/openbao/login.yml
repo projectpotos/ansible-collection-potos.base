@@ -106,7 +106,7 @@
       yad --title {{ (steps_client_name ~ ' OpenBao login') | quote }}
       --image {{ steps_logo | quote }} --image-on-top
       --borders 20 --fullscreen
-      --button=Copy URL:{{ steps_setup_dir }}/openbao-copy-url.sh
+      --button={{ ('Copy URL:' ~ steps_setup_dir ~ '/openbao-copy-url.sh') | quote }}
       --button=Cancel:1
       --text "$(printf 'Open this link on any device to finish signing in:\n\n%s\n\nVerification code: %s\n\nUse "Copy URL" to copy the link to the clipboard. This window closes automatically once you are done.' "$OIDC_VERIFICATION_URL" "$OIDC_USER_CODE")"
   when: step_input.notify | bool
