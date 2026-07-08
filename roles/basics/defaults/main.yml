@@ -1,6 +1,7 @@
 ---
-# Short client name. Used for unit / file naming and log labels.
-basics_client_name: "{{ potos_plays_client_short_name | default('potos') }}"
+# Short client name. Used for unit / file naming and log labels. Overridden at
+# run time by client_name.short from the system config (see load_config.yml).
+basics_client_name: potos
 
 # On-disk layout
 basics_etc_dir: /etc/potos

@@ -38,7 +38,9 @@ argument_specs:
         type: str
         default: Please select your keyboard layout
       firstboot_client_name:
-        description: Short client name used in dialog titles.
+        description:
+          - Short client name used in dialog titles. Overridden at run time by
+            C(client_name.short) from the system config.
         type: str
         default: potos
       firstboot_config_file:

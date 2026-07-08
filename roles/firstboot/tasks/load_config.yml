@@ -25,6 +25,11 @@
     firstboot_step_list: >-
       {{ firstboot_config.firstboot.steps | default([], true) }}
 
+- name: Apply the client name from the system config
+  ansible.builtin.set_fact:
+    firstboot_client_name: >-
+      {{ firstboot_config.client_name.short | default(firstboot_client_name) }}
+
 - name: Apply debug settings from the system config
   ansible.builtin.set_fact:
     firstboot_debug_no_log: >-
