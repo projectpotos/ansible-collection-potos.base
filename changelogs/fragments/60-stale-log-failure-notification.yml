@@ -1,0 +1,8 @@
+---
+bugfixes:
+  - The ``potos-ansible-pull`` wrapper no longer greps the accumulated
+    ``ansible-pull.log`` for ``failed=`` recap lines to detect failures. The
+    log is appended across runs and only rotated weekly, so a single failed
+    run caused every following successful run to broadcast a failure
+    notification until rotation. The playbook exit code is now the sole
+    failure signal. This is subject to change if we ever switch to a log file per run.
