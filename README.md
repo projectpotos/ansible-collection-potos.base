@@ -25,19 +25,11 @@ which requirements are needed.
 ## Included content
 
 <!--start collection content-->
-### Yad_password_validation filter plugins
-Ansible filter plugin entry point.
-
+### Filter plugins
 Name | Description
 --- | ---
-projectpotos.base.yad_password_validation|Return yad validations enforcing ``policy`` on ``password_field``.
-
-### Resolve_step_refs filter plugins
-Ansible filter plugin entry point.
-
-Name | Description
---- | ---
-projectpotos.base.resolve_step_refs|Render ``{{ steps.* }}`` and ``{{ ansible_facts.* }}`` refs in ``value``.
+[projectpotos.base.resolve_step_refs](https://github.com/projectpotos/ansible-collection-potos.base/blob/main/docs/projectpotos.base.resolve_step_refs_filter.rst)|Resolve step output and fact references in step inputs
+[projectpotos.base.yad_password_validation](https://github.com/projectpotos/ansible-collection-potos.base/blob/main/docs/projectpotos.base.yad_password_validation_filter.rst)|Build yad dialog validations from a password policy
 
 ### Modules
 Name | Description

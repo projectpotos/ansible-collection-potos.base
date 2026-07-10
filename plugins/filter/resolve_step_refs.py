@@ -14,6 +14,58 @@ from __future__ import annotations
 
 from typing import Any
 
+
+DOCUMENTATION = r"""
+---
+name: resolve_step_refs
+short_description: Resolve step output and fact references in step inputs
+version_added: "0.1.0"
+description:
+  - Recursively renders Jinja2 expressions in the input, exposing the outputs
+    of previously run steps as C(steps.<id>.<field>) and the host facts as
+    C(ansible_facts.*).
+  - Strings without Jinja2 markers, and non-string values, are returned
+    unchanged. Lists and dictionaries are traversed recursively.
+  - Ansible's builtin filters and tests are available inside the rendered
+    expressions.
+  - Undefined references raise an error instead of rendering empty strings.
+  - "Note: This module is highly specific for the potos steps role. You probably don't need it in any other context."
+positional: steps, ansible_facts
+options:
+  _input:
+    description: Value to render. Usually a step's C(input) dictionary.
+    type: raw
+    required: true
+  steps:
+    description: Mapping of step id to that step's registered outputs.
+    type: dict
+  ansible_facts:
+    description: The host's C(ansible_facts) to expose during rendering.
+    type: dict
+author:
+  - Project Potos (@projectpotos)
+"""
+
+EXAMPLES = r"""
+- name: Resolve references in the step input
+  ansible.builtin.set_fact:
+    step_input: >-
+      {{ step.input | default({})
+         | projectpotos.base.resolve_step_refs(steps, ansible_facts) }}
+
+- name: Evaluate a step's when condition
+  ansible.builtin.set_fact:
+    step_run: >-
+      {{ (step.when | default(true) | string)
+         | projectpotos.base.resolve_step_refs(steps, ansible_facts) | bool }}
+"""
+
+RETURN = r"""
+_value:
+  description: The input with all C(steps.*) and C(ansible_facts.*) references rendered.
+  type: raw
+"""
+
 from ansible.errors import AnsibleFilterError
 from ansible.plugins.loader import filter_loader, test_loader
 from jinja2 import Environment, StrictUndefined
