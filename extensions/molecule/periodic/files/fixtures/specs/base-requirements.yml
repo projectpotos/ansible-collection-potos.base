@@ -1,0 +1,5 @@
+---
+collections:
+  - name: https://github.com/projectpotos/ansible-collection-potos.base.git
+    type: git
+    version: main

@@ -10,7 +10,7 @@
     box_venv: /var/lib/potos/virtenv
     box_inventory: /var/lib/potos/ansible/potos_inventory
     specs_dir: /var/lib/potos/specs
-    specs_galaxy: /var/lib/potos/specs/.galaxy
+    specs_galaxy: /var/lib/potos/galaxy
     system_collections: /usr/share/ansible/collections
 
   tasks:

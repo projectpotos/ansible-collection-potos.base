@@ -81,6 +81,50 @@
         path: "{{ basics_specs_clone_dir }}/requirements.yml"
       register: basics_specs_requirements
 
+    - name: Read the specs requirements.yml
+      ansible.builtin.slurp:
+        src: "{{ basics_specs_clone_dir }}/requirements.yml"
+      register: basics_specs_requirements_raw
+      when: basics_specs_requirements.stat.exists
+
+    # projectpotos.base in the specs requirements would shadow the system-wide
+    # install in stage 2 while stage 1 keeps running the old version - a silent
+    # split-brain. The base collection is pinned in base-requirements.yml
+    # instead (see below), which updates it for both stages.
+    - name: Fail when the specs requirements.yml would shadow projectpotos.base
+      ansible.builtin.assert:
+        that:
+          - basics_specs_shadowing | length == 0
+        fail_msg: >-
+          The specs requirements.yml must not list projectpotos.base
+          (found: {{ basics_specs_shadowing | join(', ') }}).
+          Pin it in base-requirements.yml instead, so stage 1 and stage 2
+          run the same version.
+      vars:
+        basics_specs_shadowing: >-
+          {{ (basics_specs_requirements_raw.content | b64decode | from_yaml).collections
+             | default([], true)
+             | map('string')
+             | select('search', 'projectpotos\.base|ansible-collection-potos\.base')
+             | list }}
+      when: basics_specs_requirements.stat.exists
+
+    # Wiped after (not before) a successful clone: dependencies removed from
+    # requirements.yml disappear, but a failed clone or unreachable specs repo
+    # leaves the last good install untouched.
+    - name: Wipe the specs galaxy dir
+      ansible.builtin.file:
+        path: "{{ basics_specs_galaxy_dir }}"
+        state: absent
+
+    - name: Recreate the specs galaxy dir
+      ansible.builtin.file:
+        path: "{{ basics_specs_galaxy_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0750"
+
     - name: Install specs collections
       ansible.builtin.command:
         cmd: >-
@@ -113,3 +157,36 @@
           a runtime.yml at its root. This file is required and declares which
           roles run for each runtype.
       when: not basics_specs_runs_stat.stat.exists
+
+    # Self-update of projectpotos.base from the specs repo's optional
+    # base-requirements.yml.
+    # This must be the last task of the play, so no include_* use an updated version mid run.
+    - name: Check for the specs base-requirements.yml
+      ansible.builtin.stat:
+        path: "{{ basics_base_requirements_file }}"
+      register: basics_base_requirements
+
+    - name: Update projectpotos.base from the specs base-requirements.yml
+      ansible.builtin.command:
+        cmd: >-
+          {{ basics_virtenvdir }}/bin/ansible-galaxy collection install
+          -r {{ basics_base_requirements_file }}
+          -p {{ basics_system_collections_dir }}
+          --force
+      when: basics_base_requirements.stat.exists
+      register: basics_base_update
+      changed_when: basics_base_update.rc == 0
+      failed_when: false
+
+    # Show a warning when the self-update failed, but don't fail the play. The
+    # installed version is still usable. Otherwise we leave the system in a broken state.
+    - name: Warn when the projectpotos.base self-update failed
+      ansible.builtin.debug:
+        msg: >-
+          WARNING: updating projectpotos.base from
+          {{ basics_base_requirements_file }} failed
+          (rc={{ basics_base_update.rc }}); continuing with the installed
+          version. stderr: {{ basics_base_update.stderr | default('') }}
+      when:
+        - basics_base_requirements.stat.exists
+        - basics_base_update.rc != 0

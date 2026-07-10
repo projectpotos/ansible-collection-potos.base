@@ -82,6 +82,14 @@
           - --force
       changed_when: true
 
+    # Canary for the projectpotos.base self-update: stage 1 reinstalls the
+    # collection from base-requirements.yml, which restores this file. Verify
+    # asserts it is back.
+    - name: Remove a canary file from the installed collection
+      ansible.builtin.file:
+        path: "{{ system_collections }}/ansible_collections/projectpotos/base/README.md"
+        state: absent
+
     - name: Create the dummy specs role source
       ansible.builtin.file:
         path: "{{ specs_roles_src }}/potos_specs_dummy/{{ item }}"
@@ -131,6 +139,12 @@
       ansible.builtin.template:
         src: fixtures/specs/requirements.yml.j2
         dest: "{{ specs_src }}/requirements.yml"
+        mode: "0644"
+
+    - name: Write the specs base-requirements.yml
+      ansible.builtin.copy:
+        src: fixtures/specs/base-requirements.yml
+        dest: "{{ specs_src }}/base-requirements.yml"
         mode: "0644"
 
     - name: Initialise the specs git repo
