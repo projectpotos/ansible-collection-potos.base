@@ -1,3 +1,0 @@
----
-minor_changes:
-  - Added `stderr` to the outputs of the `script/run` step, allowing scripts to return error messages.

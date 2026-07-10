@@ -10,6 +10,7 @@ ignore: |
   changelogs/changelog.yaml
   collections/
   tests/output/
+  changelogs/.plugin-cache.yaml
 
 rules:
   line-length: disable
