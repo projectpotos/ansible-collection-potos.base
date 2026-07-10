@@ -1,0 +1,3 @@
+---
+minor_changes:
+  - Added `DOCUMENTATION`, `EXAMPLES` and `RETURN` to the `resolve_step_refs` and `yad_password_validation` filter plugins.

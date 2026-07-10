@@ -26,6 +26,92 @@ import re
 from typing import Any
 
 
+DOCUMENTATION = r"""
+---
+name: yad_password_validation
+short_description: Build yad dialog validations from a password policy
+version_added: "0.1.0"
+description:
+  - Translates a human-readable password policy into a list of validation
+    rules for the M(projectpotos.base.yad) module.
+  - Each policy option is turned into a rule with a human-readable error
+    message.
+positional: password_field, confirm_field
+options:
+  _input:
+    description: The password policy. An empty or omitted policy yields only the C(required) rule.
+    type: dict
+    required: true
+    suboptions:
+      min_length:
+        description: Minimum number of characters.
+        type: int
+      max_length:
+        description: Maximum number of characters.
+        type: int
+      min_uppercase:
+        description: Minimum count of C(A-Z) characters.
+        type: int
+      min_lowercase:
+        description: Minimum count of C(a-z) characters.
+        type: int
+      min_digits:
+        description: Minimum count of C(0-9) characters.
+        type: int
+      min_special:
+        description: Minimum count of characters from O(_input.special_chars).
+        type: int
+      special_chars:
+        description: The set of characters that counts as "special".
+        type: str
+        default: "!@#$%^&*()-_=+[]{};:,.<>?/~"
+      forbidden_chars:
+        description: Characters that must not appear at all.
+        type: str
+      regex:
+        description: An extra regex rule the password must match.
+        type: str
+      regex_message:
+        description: Error message for the O(_input.regex) rule.
+        type: str
+        default: The password does not meet the policy requirements.
+  password_field:
+    description: Name of the dialog field holding the password.
+    type: str
+    required: true
+  confirm_field:
+    description: Name of the confirmation field. When set, a C(match) rule against O(password_field) is added.
+    type: str
+author:
+  - Project Potos (@projectpotos)
+"""
+
+EXAMPLES = r"""
+- name: Ask for a password enforcing policy
+  vars:
+    password_policy:
+      min_length: 12
+      min_uppercase: 1
+      min_digits: 1
+      min_special: 1
+      forbidden_chars: " "
+  projectpotos.base.yad:
+    fields:
+      - {label: "Password", type: password}
+      - {label: "Confirm password", type: password}
+    validations: >-
+      {{ password_policy
+         | projectpotos.base.yad_password_validation('Password', 'Confirm password') }}
+"""
+
+RETURN = r"""
+_value:
+  description: Validation rules for the M(projectpotos.base.yad) module. Each rule has C(type), C(field), C(error_message), and type-specific keys.
+  type: list
+  elements: dict
+"""
+
+
 _DEFAULT_REQUIRED_MSG = "A password is required."
 _DEFAULT_MATCH_MSG = "The passwords did not match. Please try again."
 _DEFAULT_REGEX_MSG = "The password does not meet the policy requirements."
