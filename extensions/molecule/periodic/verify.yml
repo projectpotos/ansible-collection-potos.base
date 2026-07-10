@@ -15,12 +15,27 @@
         path: /tmp/potos-apply-marker
       register: potos_apply_marker
 
+    - name: Stat the dummy role installed into the specs galaxy dir
+      ansible.builtin.stat:
+        path: /var/lib/potos/galaxy/roles/potos_specs_dummy
+      register: potos_galaxy_role
+
+    - name: Stat the canary restored by the projectpotos.base self-update
+      ansible.builtin.stat:
+        path: /usr/share/ansible/collections/ansible_collections/projectpotos/base/README.md
+      register: potos_base_canary
+
     - name: Both periodic stages ran
       ansible.builtin.assert:
         that:
           - potos_specs_clone.stat.exists
           - potos_apply_marker.stat.exists
+          - potos_galaxy_role.stat.exists
+          - potos_base_canary.stat.exists
         fail_msg: >-
           periodic run incomplete: specs clone
           exists={{ potos_specs_clone.stat.exists }},
-          apply marker exists={{ potos_apply_marker.stat.exists }}
+          apply marker exists={{ potos_apply_marker.stat.exists }},
+          galaxy role exists={{ potos_galaxy_role.stat.exists }},
+          galaxy shim islnk={{ potos_galaxy_shim.stat.islnk | default(false) }},
+          base self-update canary exists={{ potos_base_canary.stat.exists }}

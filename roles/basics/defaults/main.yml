@@ -39,10 +39,18 @@ basics_specs_url: ""
 basics_specs_branch: "main"
 basics_specs_clone_dir: "{{ basics_state_dir }}/specs"
 
-# Per-clone galaxy dir. Collections / roles declared in
-# <specs>/requirements.yml are installed here on every run, so they get the
-# same wipe-and-reinstall treatment as the specs tree itself.
-basics_specs_galaxy_dir: "{{ basics_specs_clone_dir }}/.galaxy"
+# Galaxy dir for the specs dependencies. Collections / roles declared in
+# <specs>/requirements.yml are installed here on every run. The dir is wiped
+# after each successful specs clone. This removes any stale collections / roles that were removed from the specs repo.
+basics_specs_galaxy_dir: "{{ basics_state_dir }}/galaxy"
+
+# System-wide collections path holding projectpotos.base itself. Firstboot
+# installs the collection here; the periodic prepare playbook force-reinstalls
+# it from the specs repo's base-requirements.yml when that file exists.
+basics_system_collections_dir: /usr/share/ansible/collections
+
+# Optional pin use a different file to track the version
+basics_base_requirements_file: "{{ basics_specs_clone_dir }}/base-requirements.yml"
 
 # Run types. Each entry with on_calendar gets a systemd timer.
 basics_runtypes:

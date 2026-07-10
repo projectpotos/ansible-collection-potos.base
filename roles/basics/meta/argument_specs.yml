@@ -65,7 +65,13 @@ argument_specs:
         default: /var/lib/potos/specs
       basics_specs_galaxy_dir:
         type: str
-        default: /var/lib/potos/specs/.galaxy
+        default: /var/lib/potos/galaxy
+      basics_system_collections_dir:
+        type: str
+        default: /usr/share/ansible/collections
+      basics_base_requirements_file:
+        type: str
+        default: /var/lib/potos/specs/base-requirements.yml
       basics_runtypes:
         type: list
         elements: dict

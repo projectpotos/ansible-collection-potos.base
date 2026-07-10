@@ -21,6 +21,7 @@ INVENTORY="{{ basics_inventory }}"
 LOCK="/var/lock/potos.lock"
 SPECS_DIR="{{ basics_specs_clone_dir }}"
 SPECS_GALAXY_DIR="{{ basics_specs_galaxy_dir }}"
+SYSTEM_COLLECTIONS="{{ basics_system_collections_dir }}"
 VAULT_BACKEND="{{ basics_ansible_vault_key_backend }}"
 VAULT_KEY="{{ basics_ansible_vault_key_file }}"
 VAULT_NAME="{{ basics_ansible_vault_key_name }}"
@@ -28,7 +29,7 @@ VAULT_PASS_HELPER="{{ basics_libexec_dir }}/potos-vault-pass.sh"
 CONFIG_FILE="{{ basics_config_file }}"
 LOG="${LOGDIR}/ansible-pull.log"
 ANSIBLE_PLAYBOOK="${VENVDIR}/bin/ansible-playbook"
-export ANSIBLE_COLLECTIONS_PATH="${ANSIBLE_COLLECTIONS_PATH:-/usr/share/ansible/collections}"
+export ANSIBLE_COLLECTIONS_PATH="${ANSIBLE_COLLECTIONS_PATH:-${SYSTEM_COLLECTIONS}}"
 
 die () { printf '%s\n' "$1" >&2; exit 1; }
 
@@ -162,7 +163,7 @@ if [ "${RC}" -eq 0 ] && [ -f "${SPECS_DIR}/runtime.yml" ]; then
   if [ -d "${SPECS_DIR}/inventory" ]; then
     STAGE2_INV_OPT+=("-i" "${SPECS_DIR}/inventory")
   fi
-  ANSIBLE_COLLECTIONS_PATH="${SPECS_GALAXY_DIR}/collections:/usr/share/ansible/collections" \
+  ANSIBLE_COLLECTIONS_PATH="${SPECS_GALAXY_DIR}/collections:${SYSTEM_COLLECTIONS}" \
   ANSIBLE_ROLES_PATH="${SPECS_GALAXY_DIR}/roles" \
     "${ANSIBLE_PLAYBOOK}" \
       "${STAGE2_INV_OPT[@]}" \
