@@ -2,15 +2,13 @@
 name: Release projectpotos.base
 
 # The version bump and changelog land on main through a release PR
-# (task release:create) before the tag is pushed (task release:tag),
-# so this workflow only builds and publishes the collection.
+# (task release:create) before the tag is pushed (task release:tag);
+# the shared workflow only builds and publishes the collection.
 on:
   push:
     tags: ["v*"]
 
-# Publishing needs no write access to the repository.
-permissions:
-  contents: read
+permissions: {}
 
 concurrency:
   group: release-${{ github.ref }}
@@ -18,50 +16,8 @@ concurrency:
 
 jobs:
   release:
-    name: Build and publish to Galaxy
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    environment: release
-    steps:
-      - name: Checkout
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
-        with:
-          persist-credentials: false
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
-        with:
-          enable-cache: false
-
-      - name: Verify the tag matches the galaxy.yml version
-        id: version
-        run: |
-          TAG_VERSION="${GITHUB_REF_NAME#v}"
-          GALAXY_VERSION="$(sed -nE 's/^version: *"?([0-9][^" ]*)"?.*/\1/p' galaxy.yml)"
-          if [ "${TAG_VERSION}" != "${GALAXY_VERSION}" ]; then
-            echo "::error::Tag ${GITHUB_REF_NAME} does not match galaxy.yml version '${GALAXY_VERSION}'; merge the release PR before tagging" >&2
-            exit 1
-          fi
-          echo "version=${TAG_VERSION}" >> "$GITHUB_OUTPUT"
-
-      - name: Build the collection
-        run: uv run --frozen ansible-galaxy collection build --force --output-path dist
-
-      - name: Publish the collection on Galaxy
-        env:
-          ANSIBLE_GALAXY_API_KEY: ${{ secrets.ANSIBLE_GALAXY_API_KEY }}
-        run: |
-          [ -n "${ANSIBLE_GALAXY_API_KEY}" ] || {
-            echo "::error::ANSIBLE_GALAXY_API_KEY is required to publish" >&2
-            exit 1
-          }
-          TARBALL=$(ls -1 dist/*.tar.gz)
-          uv run --frozen ansible-galaxy collection publish "${TARBALL}" \
-            --api-key "${ANSIBLE_GALAXY_API_KEY}"
-
-      - name: Upload built collection artifact
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
-        with:
-          name: projectpotos-base-${{ steps.version.outputs.version }}
-          path: dist/*.tar.gz
-          if-no-files-found: error
+    permissions:
+      contents: read
+    uses: projectpotos/actions/.github/workflows/release-ansible-collection.yaml@cc9fa23313351dbc2443f830da4a111f96d293c6 # v0.2.2
+    secrets:
+      ANSIBLE_GALAXY_API_KEY: ${{ secrets.ANSIBLE_GALAXY_API_KEY }}
