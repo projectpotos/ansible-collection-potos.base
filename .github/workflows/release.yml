@@ -85,11 +85,16 @@ jobs:
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
 
+          git switch -C main origin/main
+
           git add galaxy.yml CHANGELOG.rst changelogs/
-          git commit -m "Release version ${{ steps.version.outputs.version }}" || echo "No changes to commit"
-          git push origin main || echo "No changes to push"
+          if git commit -m "Release version ${VERSION}"; then
+            git push origin main
+          else
+            echo "No changes to commit"
+          fi
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
       - name: Upload built collection artifact
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
