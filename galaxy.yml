@@ -5,7 +5,7 @@
 
 namespace: "projectpotos"
 name: "base"
-version: 0.0.0
+version: 0.2.0
 readme: README.md
 authors:
   - Project Potos <potos@adfinis.com>

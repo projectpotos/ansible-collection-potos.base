@@ -4,6 +4,25 @@ Potos Base Collection Release Notes
 
 .. contents:: Topics
 
+v0.2.0
+======
+
+Major Changes
+-------------
+
+- The periodic run can now update the ``projectpotos.base`` collection itself. When the specs repo ships a ``base-requirements.yml`` (listing only ``projectpotos.base``), the end of stage 1 force-installs it into the system-wide collections path. The update is non-fatal on failure and fully converges after two runs - the bumping run already applies stage 2 with the new version, the next run executes the new prepare/basics code and re-templates the wrapper.
+
+Minor Changes
+-------------
+
+- The specs galaxy dir moved from ``<specs-clone>/.galaxy`` to ``/var/lib/potos/galaxy`` (``basics_specs_galaxy_dir``). It is wiped after each successful clone instead of implicitly with the clone dir, so dependencies removed from ``requirements.yml`` still disappear from the system, while a failed clone no longer destroys the last good install.
+- The system-wide collections path used by the wrapper and the base self-update is configurable via ``basics_system_collections_dir`` (default ``/usr/share/ansible/collections``).
+
+Breaking Changes / Porting Guide
+--------------------------------
+
+- Stage 1 now fails when the specs ``requirements.yml`` lists ``projectpotos.base``. It would shadow the system-wide install for stage 2 only, leaving the two stages on different versions - pin the base collection in ``base-requirements.yml`` instead.
+
 v0.1.0
 ======
 
