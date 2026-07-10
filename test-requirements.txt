@@ -14,7 +14,7 @@ pluggy==1.6.0
 pycparser==3.0 ; implementation_name != 'PyPy'
 pygments==2.20.0
 pytest==9.1.1
-pytest-ansible==26.4.0
+pytest-ansible==26.6.0
 pytest-cov==7.1.0
 pytest-xdist==3.8.0
 pyyaml==6.0.3
