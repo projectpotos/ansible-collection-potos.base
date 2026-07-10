@@ -151,3 +151,72 @@ tasks:
     cmds:
       - task: lint
       - task: test
+
+  release:create:
+    desc: Create a release PR with the version bump and generated changelog
+    preconditions:
+      - sh: git diff --quiet && git diff --cached --quiet
+        msg: The working tree is not clean, commit or stash your changes first.
+      - sh: command -v gh
+        msg: The GitHub CLI (gh) is required to open the release PR.
+    cmds:
+      - cmd: |
+          set -euo pipefail
+          git fetch origin main --tags --prune
+
+          echo "Latest release tags:"
+          git tag --list 'v*' --sort=-v:refname | head -n 5
+
+          printf 'Version to release (without leading v): '
+          read -r version
+          if ! printf '%s' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "'$version' is not a valid semantic version" >&2
+            exit 1
+          fi
+          if git rev-parse -q --verify "refs/tags/v$version" >/dev/null; then
+            printf 'Tag v%s already exists! Create the PR anyway, e.g. to reconcile main? [y/N] ' "$version"
+            read -r answer
+            case "$answer" in y|Y) ;; *) exit 1 ;; esac
+          fi
+
+          branch="release/v$version"
+          git switch --create "$branch" origin/main
+
+          sed -i -E "s/^version:.*/version: $version/" galaxy.yml
+          uv run --frozen antsibull-changelog release --version "$version"
+
+          git add galaxy.yml CHANGELOG.rst changelogs/
+
+          uv run --frozen pre-commit run --files $(git diff --cached --name-only --diff-filter=AM) || true
+          git add galaxy.yml CHANGELOG.rst changelogs/
+          uv run --frozen pre-commit run --files $(git diff --cached --name-only --diff-filter=AM)
+
+          git commit -m "chore: release v$version"
+          git push --set-upstream origin "$branch"
+
+          gh pr create --base main --title "chore: release v$version" \
+            --body "Version bump and changelog for the v$version release. After merging, run \`task release:tag\` to tag it and trigger the publish workflow."
+
+  release:tag:
+    desc: Tag the merged release commit on origin/main to trigger the publish workflow
+    cmds:
+      - cmd: |
+          set -euo pipefail
+          git fetch origin main --tags --prune
+
+          version="$(git show origin/main:galaxy.yml | sed -nE 's/^version: *"?([0-9][^" ]*)"?.*/\1/p')"
+          if [ "$version" = "0.0.0" ] || ! printf '%s' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "galaxy.yml on origin/main has no releasable version ('$version'), merge the release PR first" >&2
+            exit 1
+          fi
+          if git rev-parse -q --verify "refs/tags/v$version" >/dev/null; then
+            echo "Tag v$version already exists, nothing to do." >&2
+            exit 1
+          fi
+
+          printf 'Tag %s on origin/main as v%s and push? [y/N] ' "$(git rev-parse --short origin/main)" "$version"
+          read -r answer
+          case "$answer" in y|Y) ;; *) exit 1 ;; esac
+
+          git tag --annotate --message "Release v$version" "v$version" origin/main
+          git push origin "v$version"

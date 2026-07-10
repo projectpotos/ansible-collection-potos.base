@@ -1,18 +1,16 @@
 ---
 name: Release projectpotos.base
 
+# The version bump and changelog land on main through a release PR
+# (task release:create) before the tag is pushed (task release:tag),
+# so this workflow only builds and publishes the collection.
 on:
   push:
     tags: ["v*"]
-  workflow_dispatch:
-    inputs:
-      version:
-        description: "Version to release (without leading v), e.g. 1.2.3"
-        required: true
-        type: string
 
+# Publishing needs no write access to the repository.
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: release-${{ github.ref }}
@@ -28,42 +26,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
         with:
-          persist-credentials: true # needed for pushing back to the repo
-          fetch-depth: 0
+          persist-credentials: false
 
       - name: Install uv
         uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
         with:
           enable-cache: false
 
-      - name: Resolve release version
+      - name: Verify the tag matches the galaxy.yml version
         id: version
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            VERSION="${INPUTS_VERSION}"
-          else
-            VERSION="${GITHUB_REF_NAME#v}"
-          fi
-          if ! printf '%s' "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+'; then
-            echo "::error::'$VERSION' is not a valid semantic version" >&2
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          GALAXY_VERSION="$(sed -nE 's/^version: *"?([0-9][^" ]*)"?.*/\1/p' galaxy.yml)"
+          if [ "${TAG_VERSION}" != "${GALAXY_VERSION}" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} does not match galaxy.yml version '${GALAXY_VERSION}'; merge the release PR before tagging" >&2
             exit 1
           fi
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "Releasing version $VERSION"
-        env:
-          INPUTS_VERSION: ${{ inputs.version }}
-
-      - name: Set galaxy.yml version from tag
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
-        run: |
-          sed -i -E "s/^version:.*/version: ${VERSION}/" galaxy.yml
-          grep -E '^version:' galaxy.yml
-
-      - name: Regenerate changelog for the release
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
-        run: uv run --frozen antsibull-changelog release --version "${VERSION}"
+          echo "version=${TAG_VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: Build the collection
         run: uv run --frozen ansible-galaxy collection build --force --output-path dist
@@ -80,21 +59,6 @@ jobs:
           uv run --frozen ansible-galaxy collection publish "${TARBALL}" \
             --api-key "${ANSIBLE_GALAXY_API_KEY}"
 
-      - name: Commit the changes back to the repository
-        run: |
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-
-          git switch -C main origin/main
-
-          git add galaxy.yml CHANGELOG.rst changelogs/
-          if git commit -m "Release version ${VERSION}"; then
-            git push origin main
-          else
-            echo "No changes to commit"
-          fi
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
       - name: Upload built collection artifact
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
