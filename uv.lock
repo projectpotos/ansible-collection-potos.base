@@ -1001,7 +1001,7 @@ wheels = [
 
 [[package]]
 name = "pytest-ansible"
-version = "26.4.0"
+version = "26.6.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "ansible-compat" },
@@ -1012,9 +1012,9 @@ dependencies = [
     { name = "pytest-xdist" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/4f/c1/29eb44787b9a76227077fbbf3fd147d873a61235ffad1afdd9688c16f3c1/pytest_ansible-26.4.0.tar.gz", hash = "sha256:50c2c5f05472e5a41a8d9b29c38e98292c1605f57a70954fc20b51b1f5cabb82", size = 192858, upload-time = "2026-04-01T14:39:38.079Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/1e/7f/ed3e0fb4aa2a9c4c634539271ff9ad835e07ce9b83ac389f7dd9aa629b0e/pytest_ansible-26.6.0.tar.gz", hash = "sha256:7bcf55838975175eab4d7422486185393d26877f2cc2e95cbab2103848660044", size = 196400, upload-time = "2026-06-30T12:05:25.66Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/4d/96/e6f7b885ef8cf94b399a15485b972d4e1fb16a087a2914e9ad192e1eb7d2/pytest_ansible-26.4.0-py3-none-any.whl", hash = "sha256:146c3adbae17d5fcfa8bc60b8b92301c1b613d6814d42061fbc26d6e2ddab1dd", size = 31426, upload-time = "2026-04-01T14:39:36.427Z" },
+    { url = "https://files.pythonhosted.org/packages/e7/21/11a5970eef86a3c255aa0980e81d22443da7430438e1acb70afabaa37635/pytest_ansible-26.6.0-py3-none-any.whl", hash = "sha256:b80b7d24ce9e3e1048606d1fa214a4ecadf48b3ba080b99dd1544ea36238ae73", size = 32667, upload-time = "2026-06-30T12:05:24.374Z" },
 ]
 
 [[package]]
