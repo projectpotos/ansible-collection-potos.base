@@ -4,6 +4,19 @@ Potos Base Collection Release Notes
 
 .. contents:: Topics
 
+v0.3.0
+======
+
+Minor Changes
+-------------
+
+- Added the ``uki`` role. The code that previously lived in a kickstart post script is now a dedicated role that doesn't just configure UKI during the setup but handles the full lifecycle of this component.
+
+New Modules
+-----------
+
+- uki_cmdline - Derive and persist the kernel cmdline embedded into the signed UKI
+
 v0.2.0
 ======
 
