@@ -168,7 +168,7 @@ def main() -> None:
         with open(dest, encoding="utf-8") as f:
             existing = f.read().strip()
 
-    changed = existing != cmdline
+    changed = existing != cmdline or source == "bls"
     if changed and not module.check_mode:
         write_file(module, dest, cmdline)
 
