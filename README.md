@@ -38,6 +38,7 @@ Name | Description
 [projectpotos.base.openbao](https://github.com/projectpotos/ansible-collection-potos.base/blob/main/docs/projectpotos.base.openbao_module.rst)|Interact with OpenBao KV engine
 [projectpotos.base.set_password](https://github.com/projectpotos/ansible-collection-potos.base/blob/main/docs/projectpotos.base.set_password_module.rst)|Set a local user's password using chpasswd
 [projectpotos.base.systemd_creds](https://github.com/projectpotos/ansible-collection-potos.base/blob/main/docs/projectpotos.base.systemd_creds_module.rst)|Encrypt or decrypt a secret with systemd-creds
+[projectpotos.base.uki_cmdline](https://github.com/projectpotos/ansible-collection-potos.base/blob/main/docs/projectpotos.base.uki_cmdline_module.rst)|Derive and persist the kernel cmdline embedded into the signed UKI
 [projectpotos.base.yad](https://github.com/projectpotos/ansible-collection-potos.base/blob/main/docs/projectpotos.base.yad_module.rst)|Display a YAD (GTK) dialog and return the user's input
 
 <!--end collection content-->

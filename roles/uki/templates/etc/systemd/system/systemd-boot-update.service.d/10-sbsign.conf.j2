@@ -1,0 +1,6 @@
+# {{ ansible_managed }}
+[Service]
+ExecStartPre=/usr/bin/sbsign --key {{ uki_mok_key }} --cert {{ uki_mok_crt }} \
+  --output {{ uki_sdboot_efi }}.signed {{ uki_sdboot_efi }}
+ExecStartPost=/usr/bin/sbsign --key {{ uki_mok_key }} --cert {{ uki_mok_crt }} \
+  --output {{ uki_grubx64 }} {{ uki_sdboot_efi }}

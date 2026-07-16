@@ -1,0 +1,3 @@
+---
+minor_changes:
+  - Added the ``uki`` role. The code that previously lived in a kickstart post script is now a dedicated role that doesn't just configure UKI during the setup but handles the full lifecycle of this component.

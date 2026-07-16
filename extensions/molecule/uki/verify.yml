@@ -1,0 +1,168 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Stat the artifacts the role installs
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      loop:
+        - /etc/kernel/install.conf
+        - /etc/kernel/uki.conf
+        - /etc/kernel/cmdline
+        - /etc/dracut.conf.d/measured-boot.conf
+        - /etc/dracut.conf.d/90-no-rescue.conf
+        - /etc/secureboot/mok.key
+        - /etc/secureboot/mok.crt
+        - /etc/secureboot/mok.der
+        - /etc/secureboot/pcr.key.pem
+        - /etc/secureboot/pcr.pub.pem
+        - /boot/efi/EFI/fedora/grubx64.efi
+        - /boot/efi/EFI/BOOT/BOOTX64.EFI
+        - /boot/efi/EFI/BOOT/grubx64.efi
+        - /usr/libexec/potos/bootchain-heal.sh
+        - /etc/systemd/system/potos-bootchain-heal.service
+        - /etc/systemd/system/potos-bootchain-heal.path
+        - /etc/systemd/system/systemd-boot-update.service.d/10-sbsign.conf
+      register: uki_artifacts
+
+    - name: All expected artifacts exist
+      ansible.builtin.assert:
+        that:
+          - item.stat.exists
+        fail_msg: "missing expected artifact: {{ item.item }}"
+      loop: "{{ uki_artifacts.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+
+    - name: Private keys are root-only
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      loop:
+        - /etc/secureboot/mok.key
+        - /etc/secureboot/pcr.key.pem
+      register: uki_keys
+
+    - name: Key permissions are 0600
+      ansible.builtin.assert:
+        that:
+          - item.stat.mode == '0600'
+        fail_msg: "{{ item.item }} must be 0600, got {{ item.stat.mode }}"
+      loop: "{{ uki_keys.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+
+    - name: Read the embedded cmdline
+      ansible.builtin.slurp:
+        src: /etc/kernel/cmdline
+      register: uki_cmdline_raw
+
+    - name: The cmdline was derived, filtered and hardened
+      ansible.builtin.assert:
+        that:
+          - "'root=UUID=11111111-2222-3333-4444-555555555555' in uki_cmdline"
+          - "'rootflags=subvol=@' in uki_cmdline"
+          - "'rd.shell=0' in uki_cmdline"
+          - "'rd.emergency=reboot' in uki_cmdline"
+          - "'audit=1' in uki_cmdline"
+          - "'rd.live.check' not in uki_cmdline"
+          - "'inst.stage2' not in uki_cmdline"
+          - "'systemd.machine_id' not in uki_cmdline"
+          - "'rhgb' not in uki_cmdline"
+          - "'rd.shell=1' not in uki_cmdline"
+      vars:
+        uki_cmdline: "{{ uki_cmdline_raw.content | b64decode }}"
+
+    - name: The rescue BLS entry is gone
+      ansible.builtin.stat:
+        path: /boot/efi/loader/entries/bbbb-rescue.conf
+      register: uki_rescue_stat
+      failed_when: uki_rescue_stat.stat.exists
+
+    - name: Find the built UKIs
+      ansible.builtin.find:
+        paths: /boot/efi/EFI/Linux
+        patterns: "*.efi"
+      register: uki_images
+
+    - name: At least one UKI was built
+      ansible.builtin.assert:
+        that:
+          - uki_images.files | length > 0
+
+    - name: Every UKI carries the host MOK signature
+      ansible.builtin.command: # noqa: command-instead-of-module
+        argv: [sbverify, --cert, /etc/secureboot/mok.crt, "{{ item.path }}"]
+      loop: "{{ uki_images.files }}"
+      loop_control:
+        label: "{{ item.path }}"
+      changed_when: false
+
+    - name: The UKI embeds the hardened cmdline and PCR signature
+      ansible.builtin.shell: # noqa: command-instead-of-module
+        cmd: set -o pipefail; ukify inspect {{ (uki_images.files | first).path | quote }} | grep -E '^\.(cmdline|pcrsig|pcrpkey)'
+      register: uki_inspect
+      changed_when: false
+
+    - name: All UKI sections are present
+      ansible.builtin.assert:
+        that:
+          - "'.cmdline' in uki_inspect.stdout"
+          - "'.pcrsig' in uki_inspect.stdout"
+          - "'.pcrpkey' in uki_inspect.stdout"
+
+    - name: The shim-loaded systemd-boot is host-signed
+      ansible.builtin.command: # noqa: command-instead-of-module
+        argv:
+          [
+            sbverify,
+            --cert,
+            /etc/secureboot/mok.crt,
+            /boot/efi/EFI/fedora/grubx64.efi,
+          ]
+      changed_when: false
+
+    - name: The MOK certificate carries the client subject
+      ansible.builtin.command: # noqa: command-instead-of-module
+        argv: [openssl, x509, -in, /etc/secureboot/mok.crt, -noout, -subject]
+      register: uki_mok_subject
+      changed_when: false
+      failed_when: "'Potos Molecule Client' not in uki_mok_subject.stdout"
+
+    - name: The heal units are enabled
+      ansible.builtin.command: # noqa: command-instead-of-module
+        argv: [systemctl, is-enabled, "{{ item }}"]
+      loop:
+        - potos-bootchain-heal.path
+        - potos-bootchain-heal.service
+        - systemd-boot-update.service
+      changed_when: false
+
+    - name: The SELinux module landed in the policy store
+      ansible.builtin.command:
+        argv: [semodule, -n, -l]
+      register: uki_semodule
+      changed_when: false
+      failed_when: "'potos-bootchain-heal' not in uki_semodule.stdout"
+
+    - name: Clobber grubx64.efi like grub2 %posttrans would
+      ansible.builtin.copy:
+        src: /usr/lib/systemd/boot/efi/systemd-bootx64.efi
+        dest: /boot/efi/EFI/fedora/grubx64.efi
+        remote_src: true
+        mode: "0700"
+
+    - name: Run the boot chain heal script
+      ansible.builtin.command: # noqa: command-instead-of-module
+        argv: [/usr/libexec/potos/bootchain-heal.sh]
+      changed_when: true
+
+    - name: The heal script restored the host signature
+      ansible.builtin.command: # noqa: command-instead-of-module
+        argv: [sbverify, --cert, /etc/secureboot/mok.crt, "{{ item }}"]
+      loop:
+        - /boot/efi/EFI/fedora/grubx64.efi
+        - /boot/efi/EFI/BOOT/grubx64.efi
+      changed_when: false

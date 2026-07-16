@@ -1,0 +1,7 @@
+---
+- name: Install Secure Boot / UKI packages
+  ansible.builtin.dnf5:
+    name: "{{ uki_packages }}"
+    state: present
+    disablerepo: "{{ uki_dnf_disablerepo }}"
+    install_weak_deps: false

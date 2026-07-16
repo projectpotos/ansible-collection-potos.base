@@ -22,7 +22,7 @@ jobs:
     with:
       molecule-scenarios: >-
         ["basics", "firstboot", "firstboot_luks", "firstboot_openbao",
-         "firstboot_playbook", "periodic"]
+         "firstboot_playbook", "periodic", "uki"]
 
   all_green:
     name: all_green

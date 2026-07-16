@@ -1,0 +1,41 @@
+---
+# Resolve the effective uki_* settings. By default, the settings are provided
+# as normal ansible variables. But if any of the required settings are unset,
+# the role will fallback to the potos system config.
+- name: Check for the system config
+  ansible.builtin.stat:
+    path: "{{ uki_config_file }}"
+  register: uki_config_stat
+  when: >-
+    uki_enabled is none or uki_mok_password is none
+    or uki_cmdline_extra is none or uki_mok_label is none
+
+- name: Read the system config
+  ansible.builtin.slurp:
+    src: "{{ uki_config_file }}"
+  register: uki_config_raw
+  when:
+    - uki_config_stat is not skipped
+    - uki_config_stat.stat.exists
+
+- name: Resolve the effective UKI settings
+  ansible.builtin.set_fact:
+    uki_enabled: >-
+      {{ uki_enabled if uki_enabled is not none
+         else _uki.enabled | default(false) }}
+    uki_mok_password: >-
+      {{ uki_mok_password if uki_mok_password is not none
+         else _uki.mok_password | default('potos') }}
+    uki_cmdline_extra: >-
+      {{ uki_cmdline_extra if uki_cmdline_extra is not none
+         else _uki.cmdline_extra | default('') }}
+    uki_mok_label: >-
+      {{ uki_mok_label if uki_mok_label is not none
+         else _client_name.long | default('Potos Linux Client') }}
+  vars:
+    _config: >-
+      {{ (uki_config_raw.content | b64decode | from_yaml)
+         if uki_config_raw is not skipped else {} }}
+    _uki: "{{ _config.uki | default({}, true) }}"
+    _client_name: "{{ _config.client_name | default({}, true) }}"
+  no_log: true

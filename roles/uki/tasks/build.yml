@@ -1,0 +1,47 @@
+---
+- name: Find existing UKIs
+  ansible.builtin.find:
+    paths: "{{ uki_image_dir }}"
+    patterns: "*.efi"
+  register: uki_existing
+
+- name: Build and sign UKIs for all installed kernels
+  ansible.builtin.command:
+    argv: [kernel-install, add-all, --verbose]
+  environment:
+    BOOT_ROOT: "{{ uki_esp_dir }}"
+  when: uki_existing.files | length == 0
+  changed_when: true
+
+- name: Find the built UKIs
+  ansible.builtin.find:
+    paths: "{{ uki_image_dir }}"
+    patterns: "*.efi"
+  register: uki_built
+
+- name: At least one UKI must have been built
+  ansible.builtin.assert:
+    that:
+      - uki_built.files | length > 0
+    fail_msg: "No UKI found under {{ uki_image_dir }} after kernel-install."
+
+- name: Verify the UKI signatures
+  ansible.builtin.command:
+    argv:
+      - sbverify
+      - --cert
+      - "{{ uki_mok_crt }}"
+      - "{{ item.path }}"
+  loop: "{{ uki_built.files }}"
+  loop_control:
+    label: "{{ item.path }}"
+  changed_when: false
+
+- name: Verify the systemd-boot signature
+  ansible.builtin.command:
+    argv:
+      - sbverify
+      - --cert
+      - "{{ uki_mok_crt }}"
+      - "{{ uki_grubx64 }}"
+  changed_when: false

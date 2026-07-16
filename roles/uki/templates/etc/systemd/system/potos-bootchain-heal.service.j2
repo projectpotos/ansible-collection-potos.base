@@ -1,0 +1,12 @@
+# {{ ansible_managed }}
+[Unit]
+Description=Restore host-signed systemd-boot at {{ uki_grubx64 }}
+ConditionPathExists={{ uki_mok_key }}
+RequiresMountsFor={{ uki_esp_dir }}
+
+[Service]
+Type=oneshot
+ExecStart={{ uki_libexec_dir }}/bootchain-heal.sh
+
+[Install]
+WantedBy=multi-user.target

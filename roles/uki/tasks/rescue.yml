@@ -1,0 +1,36 @@
+---
+- name: Disable the dracut rescue image
+  ansible.builtin.template:
+    src: "etc/dracut.conf.d/90-no-rescue.conf.j2"
+    dest: /etc/dracut.conf.d/90-no-rescue.conf
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Ensure the /etc/kernel/install.d directory exists
+  ansible.builtin.file:
+    path: /etc/kernel/install.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Mask the dracut rescue kernel-install plugin
+  ansible.builtin.file:
+    src: /dev/null
+    dest: /etc/kernel/install.d/51-dracut-rescue.install
+    state: link
+
+- name: Find leftover rescue BLS entries
+  ansible.builtin.find:
+    paths: "{{ uki_esp_dir }}/loader/entries"
+    patterns: "*rescue*.conf"
+  register: uki_rescue_entries
+
+- name: Remove rescue BLS entries
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ uki_rescue_entries.files }}"
+  loop_control:
+    label: "{{ item.path }}"

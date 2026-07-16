@@ -1,0 +1,49 @@
+---
+- name: Resolve the effective UKI settings
+  ansible.builtin.import_tasks: resolve.yml
+
+- name: Apply the signed UKI boot chain
+  when: uki_enabled | bool
+  block:
+    - name: Run preflight checks
+      ansible.builtin.import_tasks: preflight.yml
+
+    - name: Install Secure Boot tooling
+      ansible.builtin.import_tasks: packages.yml
+
+    - name: Write kernel-install / ukify / dracut configuration
+      ansible.builtin.import_tasks: configure.yml
+
+    - name: Generate the per-host Secure Boot keys
+      ansible.builtin.import_tasks: keys.yml
+
+    - name: Derive the embedded kernel cmdline
+      ansible.builtin.import_tasks: cmdline.yml
+
+    - name: Disable the dracut rescue image
+      ansible.builtin.import_tasks: rescue.yml
+      when: uki_disable_rescue | bool
+
+    - name: Set up the shim boot chain
+      ansible.builtin.import_tasks: bootchain.yml
+
+    - name: Install the boot chain self-heal units
+      ansible.builtin.import_tasks: selfheal.yml
+
+    - name: Rebuild UKIs when the configuration changed
+      ansible.builtin.meta: flush_handlers
+
+    - name: Build and verify the signed UKIs
+      ansible.builtin.import_tasks: build.yml
+
+    - name: Manage the EFI NVRAM boot entries
+      ansible.builtin.import_tasks: nvram.yml
+      when:
+        - uki_manage_nvram | bool
+        - uki_efivars_available
+
+    - name: Queue the MOK enrollment
+      ansible.builtin.import_tasks: mok.yml
+      when:
+        - uki_enroll_mok | bool
+        - uki_efivars_available

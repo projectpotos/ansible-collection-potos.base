@@ -1,0 +1,129 @@
+---
+- name: Side effect
+  hosts: all
+  become: true
+  gather_facts: true
+
+  tasks:
+    # grub2's %posttrans copies the real GRUB over grubx64.efi on every
+    # install/upgrade; replay that with a reinstall while no file-watch-service is active.
+    - name: Reinstall the bootloader packages like an update would
+      ansible.builtin.command: # noqa: command-instead-of-module
+        argv:
+          [dnf, reinstall, -y, grub2-efi-x64, shim-x64, systemd-boot-unsigned]
+      changed_when: true
+
+    - name: The reinstall must have clobbered grubx64.efi
+      ansible.builtin.command: # noqa: command-instead-of-module
+        argv:
+          [
+            sbverify,
+            --cert,
+            /etc/secureboot/mok.crt,
+            /boot/efi/EFI/fedora/grubx64.efi,
+          ]
+      register: uki_clobbered
+      changed_when: false
+      failed_when: uki_clobbered.rc == 0
+
+    - name: Start the heal service (the boot-time re-check)
+      ansible.builtin.systemd:
+        name: potos-bootchain-heal.service
+        state: started
+
+    - name: The heal service restored the host signature
+      ansible.builtin.command: # noqa: command-instead-of-module
+        argv:
+          [
+            sbverify,
+            --cert,
+            /etc/secureboot/mok.crt,
+            /boot/efi/EFI/fedora/grubx64.efi,
+          ]
+      changed_when: false
+
+    - name: Start the path watch
+      ansible.builtin.systemd:
+        name: potos-bootchain-heal.path
+        state: started
+
+    - name: Clobber again with the watch active
+      ansible.builtin.command: # noqa: command-instead-of-module
+        argv: [dnf, reinstall, -y, grub2-efi-x64]
+      changed_when: true
+
+    - name: The path unit re-signs grubx64.efi on its own
+      ansible.builtin.command: # noqa: command-instead-of-module
+        argv:
+          [
+            sbverify,
+            --cert,
+            /etc/secureboot/mok.crt,
+            /boot/efi/EFI/fedora/grubx64.efi,
+          ]
+      register: uki_path_heal
+      retries: 15
+      delay: 2
+      until: uki_path_heal.rc == 0
+      changed_when: false
+
+    - name: Run systemd-boot-update with the re-signing override
+      ansible.builtin.systemd:
+        name: systemd-boot-update.service
+        state: started
+
+    - name: grubx64.efi is still host-signed after systemd-boot-update
+      ansible.builtin.command: # noqa: command-instead-of-module
+        argv:
+          [
+            sbverify,
+            --cert,
+            /etc/secureboot/mok.crt,
+            /boot/efi/EFI/fedora/grubx64.efi,
+          ]
+      changed_when: false
+
+    # make sure changing to the cmdline works as intended.
+    - name: Checksum the UKIs before the cmdline change
+      ansible.builtin.find:
+        paths: /boot/efi/EFI/Linux
+        patterns: "*.efi"
+        get_checksum: true
+      register: uki_pre_extra
+
+    - name: Re-run the role with a changed cmdline extra
+      ansible.builtin.include_role:
+        name: projectpotos.base.uki
+      vars:
+        uki_enabled: true
+        uki_cmdline_extra: audit=1 potos.molecule=extra
+
+    - name: Read the updated cmdline and the persisted base
+      ansible.builtin.slurp:
+        src: "{{ item }}"
+      loop:
+        - /etc/kernel/cmdline
+        - /var/lib/potos/uki-cmdline-base
+      register: uki_cmdline_files
+
+    - name: Checksum the UKIs after the cmdline change
+      ansible.builtin.find:
+        paths: /boot/efi/EFI/Linux
+        patterns: "*.efi"
+        get_checksum: true
+      register: uki_post_extra
+
+    - name: The changed extra was applied and the UKIs were rebuilt
+      ansible.builtin.assert:
+        that:
+          - "'potos.molecule=extra' in uki_cmdline"
+          - "'root=UUID=11111111-2222-3333-4444-555555555555' in uki_cmdline"
+          - "'potos.molecule=extra' not in uki_base"
+          - "'rd.shell=0' not in uki_base"
+          - uki_pre_extra.files | map(attribute='checksum') | sort
+            != uki_post_extra.files | map(attribute='checksum') | sort
+        fail_msg: >-
+          cmdline={{ uki_cmdline }} base={{ uki_base }}
+      vars:
+        uki_cmdline: "{{ uki_cmdline_files.results[0].content | b64decode }}"
+        uki_base: "{{ uki_cmdline_files.results[1].content | b64decode }}"

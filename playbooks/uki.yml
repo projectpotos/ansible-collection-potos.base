@@ -1,0 +1,10 @@
+---
+- name: Potos UKI configuration
+  hosts: all
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: Apply the UKI role
+      ansible.builtin.include_role:
+        name: projectpotos.base.uki

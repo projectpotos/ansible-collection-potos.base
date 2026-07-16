@@ -1,0 +1,118 @@
+---
+argument_specs:
+  main:
+    short_description: Set up the signed UKI / Secure Boot chain of Potos Linux Clients.
+    description:
+      - Converts the shimless C(systemd-boot) install produced by anaconda's
+        C(bootloader --sdboot) into a measured, signed boot chain
+        shim (Microsoft-signed) -> systemd-boot  -> signed UKI.
+      - Secure Boot stays on the factory keys. The host's own key is generated
+        locally and queued for enrollment as a MOK; the firmware PK/KEK/db/dbx
+        are not modified.
+      - The role is idempotent and can run both from the installer environment
+        (kickstart) and during the periodic runs to deploy
+        updates to the boot chain configuration.
+    options:
+      uki_enabled:
+        type: raw
+        default: ~
+        description:
+          - Main switch; the role is a no-op when it resolves to false.
+      uki_config_file:
+        type: str
+        default: /etc/potos/config.yml
+        description: System config file used as fallback for C(uki_enabled), C(uki_mok_password), C(uki_cmdline_extra) and C(uki_mok_label) when the caller leaves them unset.
+      uki_mok_label:
+        type: raw
+        default: ~
+        description: MOK certificate subject and EFI boot entry label. When left unset (null) it falls back to C(client_name.long) from the system config, then to C(Potos Linux Client).
+      uki_mok_password:
+        type: raw
+        default: ~
+        description: Well-known password confirming the MOK enrollment at the MokManager console. When left unset (null) it falls back to C(uki.mok_password) from the system config, then to C(potos).
+      uki_cmdline_extra:
+        type: raw
+        default: ~
+        description: Extra tokens appended to the embedded kernel cmdline. Changes are applied on the next run and rebuild the UKIs. When left unset (null) it falls back to C(uki.cmdline_extra) from the system config, then to an empty string.
+      uki_cmdline_base:
+        type: str
+        default: /var/lib/potos/uki-cmdline-base
+        description: File the derived base cmdline is persisted to at conversion time.
+      uki_dnf_disablerepo:
+        type: list
+        elements: str
+        default: []
+        description: Repos disabled during the package install.
+      uki_packages:
+        type: list
+        elements: str
+        description: Secure Boot / UKI tooling installed by the role.
+      uki_sb_dir:
+        type: str
+        default: /etc/secureboot
+      uki_esp_dir:
+        type: str
+        default: /boot/efi
+      uki_shim_dir:
+        type: str
+        default: /boot/efi/EFI/fedora
+      uki_fallback_dir:
+        type: str
+        default: /boot/efi/EFI/BOOT
+      uki_image_dir:
+        type: str
+        default: /boot/efi/EFI/Linux
+      uki_libexec_dir:
+        type: str
+        default: /usr/libexec/potos
+      uki_selinux_dir:
+        type: str
+        default: /usr/share/potos/selinux
+      uki_mok_key:
+        type: str
+        default: /etc/secureboot/mok.key
+      uki_mok_crt:
+        type: str
+        default: /etc/secureboot/mok.crt
+      uki_mok_der:
+        type: str
+        default: /etc/secureboot/mok.der
+      uki_pcr_key:
+        type: str
+        default: /etc/secureboot/pcr.key.pem
+      uki_pcr_pub:
+        type: str
+        default: /etc/secureboot/pcr.pub.pem
+      uki_sdboot_efi:
+        type: str
+        default: /usr/lib/systemd/boot/efi/systemd-bootx64.efi
+      uki_grubx64:
+        type: str
+        default: /boot/efi/EFI/fedora/grubx64.efi
+      uki_splash:
+        type: str
+        default: /usr/share/systemd/bootctl/splash-potos.bmp
+        description: Boot splash embedded into every signed UKI; skipped when the file is absent.
+      uki_pcr_banks:
+        type: str
+        default: sha256
+      uki_dracut_modules:
+        type: list
+        elements: str
+        default: [systemd-pcrphase, tpm2-tss, systemd-cryptsetup]
+      uki_disable_rescue:
+        type: bool
+        default: true
+        description: Drop the unmeasured dracut rescue image and its BLS entries.
+      uki_manage_nvram:
+        type: bool
+        default: true
+        description: Replace the direct systemd-boot NVRAM entry with a shim entry.
+      uki_enroll_mok:
+        type: bool
+        default: true
+        description: Queue the MOK enrollment via mokutil.
+      uki_install_fallback:
+        type: bool
+        default: true
+        description: Install shim + signed systemd-boot under EFI/BOOT as fallback boot option.

@@ -1,0 +1,22 @@
+---
+- name: The target must be x86_64
+  ansible.builtin.assert:
+    that:
+      - ansible_facts.architecture == 'x86_64'
+    fail_msg: The uki role only supports x86_64 UEFI systems.
+
+- name: Detect EFI variable support
+  ansible.builtin.stat:
+    path: /sys/firmware/efi/efivars
+  register: uki_efivars_stat
+
+- name: Record whether EFI variables exist
+  ansible.builtin.set_fact:
+    uki_efivars_available: "{{ uki_efivars_stat.stat.exists }}"
+
+- name: Note when NVRAM / MOK steps will be skipped
+  ansible.builtin.debug:
+    msg: >-
+      /sys/firmware/efi/efivars is not available; the efibootmgr and mokutil
+      steps are skipped on this run.
+  when: not uki_efivars_available
