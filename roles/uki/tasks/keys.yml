@@ -1,0 +1,74 @@
+---
+- name: Ensure the Secure Boot key directory exists
+  ansible.builtin.file:
+    path: "{{ uki_sb_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Check for an existing signing key
+  ansible.builtin.stat:
+    path: "{{ uki_mok_key }}"
+  register: uki_mok_key_stat
+
+# `ukify genkey` reads the uki.conf and
+# creates signing key material for secure boot and PCR signing.
+# The certificate will be valid for 10 years by default.
+# Currently, potos doesn't support invalidating or rotating the signing key out of the box.
+- name: Generate the MoK keys on the host
+  when: not uki_mok_key_stat.stat.exists
+  block:
+    - name: Generate the signing and PCR keys
+      ansible.builtin.command:
+        argv:
+          - ukify
+          - genkey
+          - --config=/etc/kernel/uki.conf
+      changed_when: true
+      notify: uki_rebuild
+
+    - name: Reissue the MOK certificate with the client subject and SKI
+      ansible.builtin.command:
+        argv:
+          - openssl
+          - req
+          - -new
+          - -x509
+          - -key
+          - "{{ uki_mok_key }}"
+          - -sha256
+          - -days
+          - "3650"
+          - -subj
+          - "/CN={{ uki_mok_label }}/"
+          - -addext
+          - basicConstraints=critical,CA:FALSE
+          - -addext
+          - subjectKeyIdentifier=hash
+          - -out
+          - "{{ uki_mok_crt }}"
+      changed_when: true
+
+- name: Export the MOK certificate in DER form for MokManager
+  ansible.builtin.command:
+    argv:
+      - openssl
+      - x509
+      - -in
+      - "{{ uki_mok_crt }}"
+      - -outform
+      - DER
+      - -out
+      - "{{ uki_mok_der }}"
+    creates: "{{ uki_mok_der }}"
+
+- name: Restrict the private key permissions
+  ansible.builtin.file:
+    path: "{{ item }}"
+    owner: root
+    group: root
+    mode: "0600"
+  loop:
+    - "{{ uki_mok_key }}"
+    - "{{ uki_pcr_key }}"

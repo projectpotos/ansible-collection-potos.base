@@ -1,0 +1,36 @@
+---
+- name: Check for the boot splash
+  ansible.builtin.stat:
+    path: "{{ uki_splash }}"
+  register: uki_splash_stat
+
+- name: Record whether the boot splash is available
+  ansible.builtin.set_fact:
+    uki_splash_available: "{{ uki_splash_stat.stat.exists }}"
+
+- name: Write the kernel-install configuration
+  ansible.builtin.template:
+    src: etc/kernel/install.conf.j2
+    dest: /etc/kernel/install.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: uki_rebuild
+
+- name: Write the UKI build configuration
+  ansible.builtin.template:
+    src: etc/kernel/uki.conf.j2
+    dest: /etc/kernel/uki.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: uki_rebuild
+
+- name: Enable the measured boot dracut modules
+  ansible.builtin.template:
+    src: etc/dracut.conf.d/measured-boot.conf.j2
+    dest: /etc/dracut.conf.d/measured-boot.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: uki_rebuild

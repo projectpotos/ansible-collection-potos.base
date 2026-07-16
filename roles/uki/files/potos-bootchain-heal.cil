@@ -1,0 +1,3 @@
+; Allow systemd path units (PID 1) to watch grubx64.efi (dosfs_t).
+(allow init_t dosfs_t (dir (getattr open read search watch)))
+(allow init_t dosfs_t (file (getattr open read watch)))

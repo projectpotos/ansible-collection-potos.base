@@ -1,0 +1,36 @@
+---
+- name: Check whether the MOK is already enrolled
+  ansible.builtin.command:
+    argv: [mokutil, --test-key, "{{ uki_mok_der }}"]
+  register: uki_mok_test
+  changed_when: false
+  failed_when: false
+
+# Enroll the MOK if it's not already enrolled.
+# At the next reboot an operator has to confirm the enrollment
+# in the MOK manager with the password provided in uki_mok_password.
+- name: Queue the MOK enrollment
+  ansible.builtin.command:
+    argv: [mokutil, --import, "{{ uki_mok_der }}"]
+    stdin: "{{ uki_mok_password }}\n{{ uki_mok_password }}"
+  when: "'already enrolled' not in uki_mok_test.stdout"
+  changed_when: true
+  no_log: true
+
+- name: Read the pending MOK requests
+  ansible.builtin.command:
+    argv: [mokutil, --list-new]
+  register: uki_mok_pending
+  changed_when: false
+  failed_when: false
+
+# mokutil can fail to queue while still exiting 0. A missing MokNew means an
+# unbootable Secure Boot system, so fail explicitly.
+- name: The MOK must be enrolled or queued
+  ansible.builtin.assert:
+    that: >-
+      'already enrolled' in uki_mok_test.stdout
+      or uki_mok_pending.stdout is search('(?i)fingerprint|\[key')
+    fail_msg: >-
+      The MOK enrollment was not queued for enrollment. The
+      signed boot chain will fail Secure Boot with a 0x1A violation.

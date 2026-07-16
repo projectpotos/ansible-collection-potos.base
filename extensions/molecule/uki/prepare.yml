@@ -1,0 +1,62 @@
+---
+- name: Prepare
+  hosts: all
+  become: true
+  gather_facts: false
+
+  tasks:
+    # A real kernel is needed so kernel-install/dracut/ukify build an actual UKI, and an
+    # SELinux policy store so the semodule install path is tested.
+    - name: Install test fixtures
+      ansible.builtin.package:
+        name:
+          - kernel-core
+          - selinux-policy-targeted
+          - util-linux
+        state: present
+
+    - name: Create the fake ESP layout
+      ansible.builtin.file:
+        path: /boot/efi/loader/entries
+        state: directory
+        mode: "0700"
+
+    - name: Write a BLS entry as anaconda would leave it
+      ansible.builtin.copy:
+        dest: /boot/efi/loader/entries/aaaa-fixture.conf
+        mode: "0600"
+        content: |
+          title Fedora Linux
+          version 999-fixture
+          linux /vmlinuz-fixture
+          initrd /initramfs-fixture.img
+          options root=UUID=11111111-2222-3333-4444-555555555555 ro rootflags=subvol=@ rd.live.check inst.stage2=hd:LABEL=Fedora systemd.machine_id=0123456789abcdef01234567 rd.shell=1 rhgb quiet
+
+    - name: Write a rescue BLS entry that must be removed
+      ansible.builtin.copy:
+        dest: /boot/efi/loader/entries/bbbb-rescue.conf
+        mode: "0600"
+        content: |
+          title Fedora Linux (rescue)
+          options root=UUID=11111111-2222-3333-4444-555555555555 ro
+
+    - name: Ensure /etc/potos exists
+      ansible.builtin.file:
+        path: /etc/potos
+        state: directory
+        mode: "0750"
+
+    # Fallback source for the settings converge does not pass explicitly
+    # (mok_password, mok_label).
+    - name: Write the system config
+      ansible.builtin.copy:
+        dest: /etc/potos/config.yml
+        mode: "0640"
+        content: |
+          ---
+          client_name:
+            short: potos
+            long: Potos Molecule Client
+          uki:
+            enabled: false
+            mok_password: molecule-test

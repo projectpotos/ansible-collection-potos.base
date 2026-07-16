@@ -1,0 +1,81 @@
+---
+# The four settings below default to null = "not provided". The caller is
+# expected to set them: the kickstart %post passes them as extra vars
+# (rendered by the ISO builder), periodic runs provide them from the specs
+# repo inventory (group_vars/host_vars). Settings still unset fall back to
+# the system config (see resolve.yml), so UKI clients whose specs repo
+# carries no uki settings keep converging. The built-in defaults noted per
+# setting apply last.
+
+# Main switch; the role is a no-op when it resolves to false (built-in
+# default). System config fallback: uki.enabled.
+uki_enabled: null
+
+# MOK certificate subject / boot entry label. System config fallback:
+# client_name.long. Built-in default: "Potos Linux Client".
+uki_mok_label: null
+
+# Well-known password confirming the MOK enrollment at the MokManager
+# console. System config fallback: uki.mok_password. Built-in default:
+# "potos".
+uki_mok_password: null
+
+# Extra options appended to the embedded kernel cmdline.
+uki_cmdline_extra: null
+
+# System config used as fallback for the settings above.
+uki_config_file: /etc/potos/config.yml
+
+# Repos to disable for the package installation.
+uki_dnf_disablerepo: []
+
+uki_packages:
+  - shim-x64
+  - systemd-boot-unsigned
+  - systemd-ukify
+  - sbsigntools
+  - dracut
+  - tpm2-tools
+  - mokutil
+  - openssl
+  - policycoreutils
+  - efibootmgr
+
+# On-disk layout
+uki_sb_dir: /etc/secureboot
+uki_esp_dir: /boot/efi
+uki_shim_dir: "{{ uki_esp_dir }}/EFI/fedora"
+uki_fallback_dir: "{{ uki_esp_dir }}/EFI/BOOT"
+uki_image_dir: "{{ uki_esp_dir }}/EFI/Linux"
+uki_libexec_dir: /usr/libexec/potos
+uki_selinux_dir: /usr/share/potos/selinux
+
+# Persisted base cmdline.
+uki_cmdline_base: /var/lib/potos/uki-cmdline-base
+
+uki_mok_key: "{{ uki_sb_dir }}/mok.key"
+uki_mok_crt: "{{ uki_sb_dir }}/mok.crt"
+uki_mok_der: "{{ uki_sb_dir }}/mok.der"
+uki_pcr_key: "{{ uki_sb_dir }}/pcr.key.pem"
+uki_pcr_pub: "{{ uki_sb_dir }}/pcr.pub.pem"
+uki_sdboot_efi: /usr/lib/systemd/boot/efi/systemd-bootx64.efi
+uki_grubx64: "{{ uki_shim_dir }}/grubx64.efi"
+
+# Boot splash embedded into every signed UKI (skipped when the file is absent).
+uki_splash: /usr/share/systemd/bootctl/splash-potos.bmp
+
+uki_pcr_banks: sha256
+uki_dracut_modules:
+  - systemd-pcrphase
+  - tpm2-tss
+  - systemd-cryptsetup
+
+# Drop the unmeasured dracut rescue entry.
+uki_disable_rescue: true
+
+# Manage EFI NVRAM boot entries / queue the MOK enrollment.
+uki_manage_nvram: true
+uki_enroll_mok: true
+
+# Install shim + signed systemd-boot under EFI/BOOT as removable-media fallback.
+uki_install_fallback: true

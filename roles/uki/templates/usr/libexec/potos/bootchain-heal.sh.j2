@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# {{ ansible_managed }}
+# Restore the host-signed systemd-boot at {{ uki_grubx64 }} if another package
+# replaced it.
+set -euo pipefail
+
+if ! sbverify --cert {{ uki_mok_crt }} {{ uki_grubx64 }} >/dev/null 2>&1; then
+  echo "{{ uki_grubx64 }} lost the host MOK signature; re-signing systemd-boot over it"
+  sbsign --key {{ uki_mok_key }} --cert {{ uki_mok_crt }} \
+    --output {{ uki_grubx64 }} {{ uki_sdboot_efi }}
+fi
+{% if uki_install_fallback %}
+if ! sbverify --cert {{ uki_mok_crt }} {{ uki_fallback_dir }}/grubx64.efi >/dev/null 2>&1; then
+  echo "refreshing removable-media fallback copy of grubx64.efi"
+  cp -f {{ uki_grubx64 }} {{ uki_fallback_dir }}/grubx64.efi
+fi
+{% endif %}

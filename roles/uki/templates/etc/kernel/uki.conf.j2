@@ -1,0 +1,13 @@
+# {{ ansible_managed }}
+[UKI]
+SecureBootPrivateKey={{ uki_mok_key }}
+SecureBootCertificate={{ uki_mok_crt }}
+PCRBanks={{ uki_pcr_banks }}
+{% if uki_splash_available %}
+Splash={{ uki_splash }}
+{% endif %}
+
+[PCRSignature:initrd]
+Phases=enter-initrd
+PCRPrivateKey={{ uki_pcr_key }}
+PCRPublicKey={{ uki_pcr_pub }}

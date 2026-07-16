@@ -1,0 +1,13 @@
+---
+- name: Converge
+  hosts: all
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: Run the uki role
+      ansible.builtin.include_role:
+        name: projectpotos.base.uki
+      vars:
+        uki_enabled: true
+        uki_cmdline_extra: audit=1

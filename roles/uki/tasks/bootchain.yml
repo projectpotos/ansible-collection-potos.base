@@ -1,0 +1,83 @@
+---
+- name: Ensure the shim directory exists
+  ansible.builtin.file:
+    path: "{{ uki_shim_dir }}"
+    state: directory
+    mode: "0700"
+
+- name: Check the signature on the shim-loaded systemd-boot
+  ansible.builtin.command:
+    argv:
+      - sbverify
+      - --cert
+      - "{{ uki_mok_crt }}"
+      - "{{ uki_grubx64 }}"
+  register: uki_grubx64_sig
+  changed_when: false
+  failed_when: false
+
+# shim chainloads grubx64.efi, so have to deploy systemd-boot
+# as grubx64.efi and sign it with the MOK key.
+- name: Sign systemd-boot and place it as grubx64.efi
+  ansible.builtin.command:
+    argv:
+      - sbsign
+      - --key
+      - "{{ uki_mok_key }}"
+      - --cert
+      - "{{ uki_mok_crt }}"
+      - --output
+      - "{{ uki_grubx64 }}"
+      - "{{ uki_sdboot_efi }}"
+  when: uki_grubx64_sig.rc != 0
+  changed_when: true
+
+- name: Install the EFI boot fallback
+  when: uki_install_fallback | bool
+  block:
+    - name: Ensure the fallback directory exists
+      ansible.builtin.file:
+        path: "{{ uki_fallback_dir }}"
+        state: directory
+        mode: "0700"
+
+    - name: Copy shim and MokManager to the fallback path
+      ansible.builtin.copy:
+        src: "{{ uki_shim_dir }}/{{ item.src }}"
+        dest: "{{ uki_fallback_dir }}/{{ item.dest }}"
+        remote_src: true
+        mode: "0700"
+      loop:
+        - { src: shimx64.efi, dest: BOOTX64.EFI }
+        - { src: mmx64.efi, dest: mmx64.efi }
+      loop_control:
+        label: "{{ item.dest }}"
+
+    - name: Copy the signed systemd-boot to the fallback path
+      ansible.builtin.copy:
+        src: "{{ uki_grubx64 }}"
+        dest: "{{ uki_fallback_dir }}/grubx64.efi"
+        remote_src: true
+        mode: "0700"
+
+- name: Ensure /etc/systemd/system/systemd-boot-update.service.d exists
+  ansible.builtin.file:
+    path: /etc/systemd/system/systemd-boot-update.service.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Install the systemd-boot-update signing config
+  ansible.builtin.template:
+    src: etc/systemd/system/systemd-boot-update.service.d/10-sbsign.conf.j2
+    dest: /etc/systemd/system/systemd-boot-update.service.d/10-sbsign.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: uki_systemd_reload
+
+- name: Enable systemd-boot-update.service
+  ansible.builtin.systemd:
+    name: systemd-boot-update.service
+    enabled: true

@@ -1,0 +1,71 @@
+---
+- name: List the current EFI boot entries
+  ansible.builtin.command:
+    argv: [efibootmgr]
+  register: uki_efibootmgr
+  changed_when: false
+
+# Drop the shimless sd-boot entry created by `bootloader --sdboot` so the
+# firmware boots shim instead.
+- name: Remove direct systemd-boot boot entries
+  ansible.builtin.command:
+    argv: [efibootmgr, --delete-bootnum, --bootnum, "{{ item }}"]
+  loop: >-
+    {{ uki_efibootmgr.stdout
+       | regex_findall('Boot([0-9A-Fa-f]{4})\*? .*[\\\\/]systemd-bootx64\.efi') }}
+  changed_when: true
+  failed_when: false
+
+- name: Resolve the ESP mount
+  ansible.builtin.set_fact:
+    uki_esp_device: >-
+      {{ (ansible_facts.mounts | selectattr('mount', '==', uki_esp_dir)
+          | map(attribute='device') | first | default('')) }}
+
+- name: Resolve the ESP disk and partition number
+  when: uki_esp_device | length > 0
+  block:
+    - name: Look up the ESP parent disk
+      ansible.builtin.command:
+        argv: [lsblk, -nso, PKNAME, "{{ uki_esp_device }}"]
+      register: uki_esp_pkname
+      changed_when: false
+      failed_when: false
+
+    - name: Read the ESP partition number
+      ansible.builtin.slurp:
+        src: "/sys/class/block/{{ uki_esp_device | basename }}/partition"
+      register: uki_esp_partition
+      failed_when: false
+
+- name: Create the shim boot entry
+  ansible.builtin.command:
+    argv:
+      - efibootmgr
+      - --create
+      - --disk
+      - "/dev/{{ uki_esp_pkname.stdout_lines | first }}"
+      - --part
+      - "{{ uki_esp_partition.content | b64decode | trim }}"
+      - --label
+      - "{{ uki_mok_label }}"
+      - --loader
+      - '\EFI\fedora\shimx64.efi'
+      - --unicode
+  when:
+    - uki_esp_device | length > 0
+    - (uki_esp_pkname.stdout_lines | default([])) | length > 0
+    - uki_esp_partition.content is defined
+    - uki_efibootmgr.stdout is not search('\\\\EFI\\\\fedora\\\\shimx64\.efi')
+  register: uki_shim_entry
+  changed_when: uki_shim_entry.rc == 0
+  failed_when: false
+
+- name: Warn when the shim boot entry could not be created
+  ansible.builtin.debug:
+    msg: >-
+      WARN: could not create the shim NVRAM boot entry; the system relies on
+      the EFI/BOOT fallback.
+  when:
+    - uki_shim_entry is not skipped
+    - uki_shim_entry.rc | default(0) != 0

@@ -1,0 +1,11 @@
+---
+# The base cmdline is derived once (from the state anaconda left behind) and
+# persisted, so periodic runs never clobber it. The effective cmdline is
+# recomputed on every run, so a changed uki_cmdline_extra are applied correctly.
+- name: Derive and write the embedded kernel cmdline
+  projectpotos.base.uki_cmdline:
+    dest: /etc/kernel/cmdline
+    base_dest: "{{ uki_cmdline_base }}"
+    bls_dir: "{{ uki_esp_dir }}/loader/entries"
+    extra: "{{ uki_cmdline_extra }}"
+  notify: uki_rebuild
