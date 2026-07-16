@@ -4,7 +4,7 @@ galaxy_info:
   description: UKI setup for Potos Linux Clients
   company: Project Potos
   license: GPL-3.0-only
-  min_ansible_version: "2.14"
+  min_ansible_version: "2.19"
   platforms:
     - name: Fedora
       versions:
