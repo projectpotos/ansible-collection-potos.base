@@ -4,7 +4,7 @@ ansible-compat==26.3.0
 attrs==26.1.0
 cffi==2.0.0
 colorama==0.4.6 ; sys_platform == 'win32'
-coverage==7.15.0
+coverage==7.14.3
 execnet==2.1.2
 iniconfig==2.3.0
 jsonschema==4.26.0
@@ -19,6 +19,6 @@ pytest-cov==7.1.0
 pytest-xdist==3.8.0
 pyyaml==6.0.3
 referencing==0.37.0
-rpds-py==2026.6.3
+rpds-py==2026.5.1
 subprocess-tee==0.4.2
-typing-extensions==4.16.0
+typing-extensions==4.15.0

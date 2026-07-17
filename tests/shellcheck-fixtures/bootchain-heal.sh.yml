@@ -1,0 +1,9 @@
+---
+# shellcheck-jinja vars for roles/uki/templates/usr/libexec/potos/bootchain-heal.sh.j2
+ansible_managed: Ansible managed
+uki_grubx64: /boot/efi/EFI/fedora/grubx64.efi
+uki_mok_crt: /etc/potos/secureboot/mok.crt
+uki_mok_key: /etc/potos/secureboot/mok.key
+uki_sdboot_efi: /usr/lib/systemd/boot/efi/systemd-bootx64.efi
+uki_install_fallback: true
+uki_fallback_dir: /boot/efi/EFI/BOOT
