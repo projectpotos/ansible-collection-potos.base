@@ -37,7 +37,6 @@
         gpgkey: "https://openbao.org/assets/openbao-gpg-pub-20240618.asc"
         gpgcheck: true
         sslverify: true
-        sslcacert: /etc/pki/tls/certs/ca-bundle.crt
         metadata_expire: "300"
       package: openbao
       mount: oidc
@@ -55,7 +54,7 @@
     gpgkey: "{{ step_input.repo.gpgkey }}"
     gpgcheck: "{{ step_input.repo.gpgcheck }}"
     sslverify: "{{ step_input.repo.sslverify }}"
-    sslcacert: "{{ step_input.repo.sslcacert }}"
+    sslcacert: "{{ step_input.repo.sslcacert | default(omit) }}"
     metadata_expire: "{{ step_input.repo.metadata_expire }}"
   when: step_input.install | bool
 
