@@ -1,0 +1,14 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["github>projectpotos/renovate-config"],
+  "pip_requirements": {
+    "managerFilePatterns": ["/(^|\\/)requirements\\.txt$/"]
+  },
+  "postUpgradeTasks": {
+    "commands": [
+      "uv export --frozen --only-group test --no-hashes --no-annotate --prune ansible-core --output-file test-requirements.txt"
+    ],
+    "executionMode": "branch",
+    "fileFilters": ["test-requirements.txt"]
+  }
+}
