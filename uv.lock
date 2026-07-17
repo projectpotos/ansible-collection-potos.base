@@ -855,26 +855,26 @@ test = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "ansible", specifier = ">=14.1.0" },
-    { name = "ansible-lint", specifier = "~=26.6.0" },
-    { name = "antsibull-changelog", specifier = "~=0.35.0" },
-    { name = "docker", specifier = "~=7.1.0" },
-    { name = "molecule", specifier = ">=26.6.0,<26.7" },
-    { name = "molecule-plugins", specifier = "~=25.8.12" },
-    { name = "pre-commit", specifier = ">=4.6.0" },
-    { name = "pytest" },
-    { name = "pytest-ansible" },
-    { name = "pytest-cov" },
-    { name = "pytest-xdist" },
-    { name = "ruff", specifier = ">=0.15.20" },
+    { name = "ansible", specifier = "==14.1.0" },
+    { name = "ansible-lint", specifier = "==26.6.0" },
+    { name = "antsibull-changelog", specifier = "==0.35.1" },
+    { name = "docker", specifier = "==7.1.0" },
+    { name = "molecule", specifier = "==26.6.0" },
+    { name = "molecule-plugins", specifier = "==25.8.12" },
+    { name = "pre-commit", specifier = "==4.6.0" },
+    { name = "pytest", specifier = "==9.1.1" },
+    { name = "pytest-ansible", specifier = "==26.6.0" },
+    { name = "pytest-cov", specifier = "==7.1.0" },
+    { name = "pytest-xdist", specifier = "==3.8.0" },
+    { name = "ruff", specifier = "==0.15.20" },
     { name = "shellcheck-jinja", git = "https://github.com/projectpotos/shellcheck-jinja?tag=v0.2.0" },
-    { name = "yamllint", specifier = "~=1.38.0" },
+    { name = "yamllint", specifier = "==1.38.0" },
 ]
 test = [
-    { name = "pytest" },
-    { name = "pytest-ansible" },
-    { name = "pytest-cov" },
-    { name = "pytest-xdist" },
+    { name = "pytest", specifier = "==9.1.1" },
+    { name = "pytest-ansible", specifier = "==26.6.0" },
+    { name = "pytest-cov", specifier = "==7.1.0" },
+    { name = "pytest-xdist", specifier = "==3.8.0" },
 ]
 
 [[package]]
