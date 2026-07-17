@@ -186,7 +186,7 @@ def labels() -> list[str]:
 def test_validate_required_pass_and_fail(labels: list[str]) -> None:
     spec = [{"type": "required", "field": "Username", "error_message": "missing"}]
     assert yad._validate(spec, ["alice", "x", "x"], labels, {}) is None
-    assert yad._validate(spec, ["", "x", "x"], labels, {}) == "missing"
+    assert yad._validate(spec, ["", "x", "x"], labels, {}) == ("missing", False)
 
 
 def test_validate_regex_pass_and_fail() -> None:
@@ -199,7 +199,7 @@ def test_validate_regex_pass_and_fail() -> None:
         },
     ]
     assert yad._validate(spec, ["host01"], ["Hostname"], {}) is None
-    assert yad._validate(spec, ["BadHost"], ["Hostname"], {}) == "bad hostname"
+    assert yad._validate(spec, ["BadHost"], ["Hostname"], {}) == ("bad hostname", False)
 
 
 def test_validate_length_min_max(labels: list[str]) -> None:
@@ -213,8 +213,8 @@ def test_validate_length_min_max(labels: list[str]) -> None:
         },
     ]
     assert yad._validate(spec, ["a", "longpassword", "x"], labels, {}) is None
-    assert yad._validate(spec, ["a", "short", "x"], labels, {}) == "len"
-    assert yad._validate(spec, ["a", "x" * 20, "x"], labels, {}) == "len"
+    assert yad._validate(spec, ["a", "short", "x"], labels, {}) == ("len", False)
+    assert yad._validate(spec, ["a", "x" * 20, "x"], labels, {}) == ("len", False)
 
 
 def test_validate_match_passwords(labels: list[str]) -> None:
@@ -227,7 +227,7 @@ def test_validate_match_passwords(labels: list[str]) -> None:
         },
     ]
     assert yad._validate(spec, ["a", "pw", "pw"], labels, {}) is None
-    assert yad._validate(spec, ["a", "pw", "PW"], labels, {}) == "mismatch"
+    assert yad._validate(spec, ["a", "pw", "PW"], labels, {}) == ("mismatch", False)
 
 
 def test_validate_command_uses_exit_code(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -258,7 +258,10 @@ def test_validate_command_uses_exit_code(monkeypatch: pytest.MonkeyPatch) -> Non
     labels = ["Password"]
 
     assert yad._validate(spec, ["correct"], labels, {"PATH": "/usr/bin"}) is None
-    assert yad._validate(spec, ["wrong"], labels, {"PATH": "/usr/bin"}) == "bad passphrase"
+    assert yad._validate(spec, ["wrong"], labels, {"PATH": "/usr/bin"}) == (
+        "bad passphrase",
+        False,
+    )
 
     # Field values must be exposed to the validation command via env vars.
     assert calls[0]["env"]["YAD_FIELD_0"] == "correct"
@@ -272,7 +275,49 @@ def test_validate_returns_first_error_only(labels: list[str]) -> None:
         {"type": "required", "field": "Username", "error_message": "first"},
         {"type": "required", "field": "Password", "error_message": "second"},
     ]
-    assert yad._validate(spec, ["", "", ""], labels, {}) == "first"
+    assert yad._validate(spec, ["", "", ""], labels, {}) == ("first", False)
+
+
+def test_validate_reports_markup_flag(labels: list[str]) -> None:
+    spec = [
+        {
+            "type": "required",
+            "field": "Username",
+            "error_message": "<b>missing</b>",
+            "markup": True,
+        },
+    ]
+    assert yad._validate(spec, ["", "", ""], labels, {}) == ("<b>missing</b>", True)
+
+
+def _show_error_text(monkeypatch: pytest.MonkeyPatch, message: str, markup: bool) -> str:
+    calls: list[list[str]] = []
+
+    def fake_run(argv: list[str], env: dict[str, str], stdin_data: str | None = None):
+        calls.append(argv)
+        return 0, "", ""
+
+    monkeypatch.setattr(yad, "_run_yad", fake_run)
+    yad._show_error(_base_params(), message, env={}, markup=markup)
+    argv = calls[0]
+    return argv[argv.index("--text") + 1]
+
+
+def test_show_error_escapes_pango_markup_by_default(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Special characters in plain error messages must not break yad's markup parser."""
+    message = "The password must contain at least 1 special character (!@#$%^&*()<>)."
+    assert _show_error_text(monkeypatch, message, markup=False) == (
+        "The password must contain at least 1 special character (!@#$%^&amp;*()&lt;&gt;)."
+    )
+
+
+def test_show_error_passes_markup_through_when_requested(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    message = "<b>Passwords</b> do not match."
+    assert _show_error_text(monkeypatch, message, markup=True) == message
 
 
 def _base_params(**overrides: Any) -> dict[str, Any]:
