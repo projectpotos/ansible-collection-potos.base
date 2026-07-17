@@ -19,6 +19,6 @@ pytest-cov==7.1.0
 pytest-xdist==3.8.0
 pyyaml==6.0.3
 referencing==0.37.0
-rpds-py==2026.5.1
+rpds-py==2026.6.3
 subprocess-tee==0.4.2
 typing-extensions==4.16.0
