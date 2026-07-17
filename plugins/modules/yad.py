@@ -40,7 +40,10 @@ options:
     description: Window title.
     type: str
   text:
-    description: Text shown inside the dialog above the input widgets.
+    description:
+      - Text shown inside the dialog above the input widgets.
+      - The text is rendered by C(yad) as Pango markup; literal C(&), C(<) and
+        C(>) must be escaped as C(&amp;), C(&lt;) and C(&gt;).
     type: str
   image:
     description: Path to an image displayed in the dialog.
@@ -195,6 +198,14 @@ options:
         description: Message shown to the user when the validation fails.
         type: str
         default: "Invalid input. Please try again."
+      markup:
+        description:
+          - Render O(validations[].error_message) as Pango markup, allowing
+            tags such as C(<b>bold</b>).
+          - When false, the message is displayed literally. Pango markup
+            characters (C(&), C(<), C(>)) are escaped automatically.
+        type: bool
+        default: false
   max_attempts:
     description:
       - Maximum number of times the dialog is re-displayed after a validation
@@ -346,6 +357,7 @@ import re
 import shlex
 import subprocess
 from typing import Any
+from xml.sax.saxutils import escape
 
 from ansible.module_utils.basic import AnsibleModule
 
@@ -527,16 +539,17 @@ def _validate(
     values: list[str],
     labels: list[str],
     base_env: dict[str, str],
-) -> str | None:
-    """Run all validations; return the first error message or ``None``."""
+) -> tuple[str, bool] | None:
+    """Run all validations; return a tuple containing the error message and if it should be markup rendered or ``None``."""
     for spec in validations:
         vtype = spec["type"]
-        error_message = spec.get("error_message") or "Invalid input. Please try again."
+        message = spec.get("error_message") or "Invalid input. Please try again."
+        error = (message, bool(spec.get("markup")))
 
         if vtype == "required":
             idx, value = _resolve_field(spec.get("field"), values, labels)
             if idx is None or not value:
-                return error_message
+                return error
 
         elif vtype == "regex":
             idx, value = _resolve_field(spec.get("field"), values, labels)
@@ -544,7 +557,7 @@ def _validate(
             if pattern is None:
                 raise YadError("regex validation requires 'pattern'")
             if value is None or not re.search(pattern, value):
-                return error_message
+                return error
 
         elif vtype == "length":
             idx, value = _resolve_field(spec.get("field"), values, labels)
@@ -552,9 +565,9 @@ def _validate(
             min_len = spec.get("min")
             max_len = spec.get("max")
             if min_len is not None and len(value) < min_len:
-                return error_message
+                return error
             if max_len is not None and len(value) > max_len:
-                return error_message
+                return error
 
         elif vtype == "match":
             idx_a, value_a = _resolve_field(spec.get("field"), values, labels)
@@ -562,7 +575,7 @@ def _validate(
             if idx_a is None or idx_b is None:
                 raise YadError("match validation requires both 'field' and 'match'")
             if value_a != value_b:
-                return error_message
+                return error
 
         elif vtype == "command":
             command = spec.get("command")
@@ -587,7 +600,7 @@ def _validate(
                 check=False,
             )
             if proc.returncode != 0:
-                return error_message
+                return error
 
         else:  # pragma: no cover - guarded by argspec choices
             raise YadError(f"Unknown validation type: {vtype}")
@@ -599,6 +612,7 @@ def _show_error(
     module_params: dict[str, Any],
     message: str,
     env: dict[str, str],
+    markup: bool = False,
 ) -> None:
     """Display a transient YAD error dialog between retry attempts."""
     argv = [module_params["executable"]]
@@ -610,7 +624,9 @@ def _show_error(
             argv.append("--image-on-top")
     if module_params.get("borders") is not None:
         argv += ["--borders", str(module_params["borders"])]
-    argv += ["--button", DEFAULT_OK_LABEL, "--text", message]
+    # yad renders --text as Pango markup; a raw &, < or > makes the markup
+    # invalid and GTK then displays an empty label instead of the message.
+    argv += ["--button", DEFAULT_OK_LABEL, "--text", message if markup else escape(message)]
     _run_yad(argv, env=env)
 
 
@@ -702,12 +718,13 @@ def _run_with_validation(
         error = _validate(validations, last_values, labels, env)
         if error is None:
             break
+        message, markup = error
 
         if max_attempts and attempts >= max_attempts:
             raise YadError(
-                f"Validation failed after {attempts} attempt(s): {error}",
+                f"Validation failed after {attempts} attempt(s): {message}",
             )
-        _show_error(params, error, env=env)
+        _show_error(params, message, env=env, markup=markup)
 
     result: dict[str, Any] = {
         "changed": False,
@@ -798,6 +815,7 @@ def main() -> None:
                     "type": "str",
                     "default": "Invalid input. Please try again.",
                 },
+                "markup": {"type": "bool", "default": False},
             },
         },
         "max_attempts": {"type": "int", "default": 3},

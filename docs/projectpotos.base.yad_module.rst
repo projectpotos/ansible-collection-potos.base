@@ -487,6 +487,7 @@ Parameters
                 </td>
                 <td>
                         <div>Text shown inside the dialog above the input widgets.</div>
+                        <div>The text is rendered by <code>yad</code> as Pango markup; literal <code>&amp;</code>, <code>&lt;</code> and <code>&gt;</code> must be escaped as <code>&amp;amp;</code>, <code>&amp;lt;</code> and <code>&amp;gt;</code>.</div>
                 </td>
             </tr>
             <tr>
@@ -570,6 +571,27 @@ Parameters
                 </td>
                 <td>
                         <div>Field this validation applies to. Accepts a field label or a zero-based index. Ignored for O(validations[].type=command) when the command consumes all field values via environment.</div>
+                </td>
+            </tr>
+            <tr>
+                    <td class="elbow-placeholder"></td>
+                <td colspan="1">
+                    <div class="ansibleOptionAnchor" id="parameter-"></div>
+                    <b>markup</b>
+                    <a class="ansibleOptionLink" href="#parameter-" title="Permalink to this option"></a>
+                    <div style="font-size: small">
+                        <span style="color: purple">boolean</span>
+                    </div>
+                </td>
+                <td>
+                        <ul style="margin: 0; padding: 0"><b>Choices:</b>
+                                    <li><div style="color: blue"><b>no</b>&nbsp;&larr;</div></li>
+                                    <li>yes</li>
+                        </ul>
+                </td>
+                <td>
+                        <div>Render O(validations[].error_message) as Pango markup, allowing tags such as <code>&lt;b&gt;bold&lt;/b&gt;</code>.</div>
+                        <div>When false, the message is displayed literally. Pango markup characters (<code>&amp;</code>, <code>&lt;</code>, <code>&gt;</code>) are escaped automatically.</div>
                 </td>
             </tr>
             <tr>
