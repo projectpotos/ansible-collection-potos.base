@@ -4,7 +4,7 @@ ansible-compat==26.3.0
 attrs==26.1.0
 cffi==2.0.0
 colorama==0.4.6 ; sys_platform == 'win32'
-coverage==7.14.3
+coverage==7.15.0
 execnet==2.1.2
 iniconfig==2.3.0
 jsonschema==4.26.0
