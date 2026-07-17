@@ -1,12 +1,10 @@
 #!/usr/bin/env bash
-# {{ ansible_managed }}
+# Ansible managed
 #
 # Runs the periodic potos ansible playbook against localhost to enforce
-# {{ basics_client_name }} client specification. Notifications and warnings
+# potos client specification. Notifications and warnings
 # are displayed to the end user when:
-{% if basics_enable_reboot_reminder %}
-#  * the machine has not been rebooted for more than {{ basics_reboot_reminder_days }} days
-{% endif %}
+#  * the machine has not been rebooted for more than 10 days
 #  * ansible reports failures
 #
 # usage: potos-ansible-pull [-h|--help] [-v|--verbose] [-r|--runtype <runtype>]
@@ -14,19 +12,19 @@
 set -eu
 set -o pipefail
 
-WORKDIR="{{ basics_workdir }}"
-VENVDIR="{{ basics_virtenvdir }}"
-LOGDIR="{{ basics_logdir }}"
-INVENTORY="{{ basics_inventory }}"
+WORKDIR="/var/lib/potos/ansible"
+VENVDIR="/var/lib/potos/virtenv"
+LOGDIR="/var/log/potos"
+INVENTORY="/var/lib/potos/ansible/potos_inventory"
 LOCK="/var/lock/potos.lock"
-SPECS_DIR="{{ basics_specs_clone_dir }}"
-SPECS_GALAXY_DIR="{{ basics_specs_galaxy_dir }}"
-SYSTEM_COLLECTIONS="{{ basics_system_collections_dir }}"
-VAULT_BACKEND="{{ basics_ansible_vault_key_backend }}"
-VAULT_KEY="{{ basics_ansible_vault_key_file }}"
-VAULT_NAME="{{ basics_ansible_vault_key_name }}"
-VAULT_PASS_HELPER="{{ basics_libexec_dir }}/potos-vault-pass.sh"
-CONFIG_FILE="{{ basics_config_file }}"
+SPECS_DIR="/var/lib/potos/specs"
+SPECS_GALAXY_DIR="/var/lib/potos/galaxy"
+SYSTEM_COLLECTIONS="/usr/share/ansible/collections"
+VAULT_BACKEND="file"
+VAULT_KEY="/etc/potos/ansible_vault_key"
+VAULT_NAME="ansible-vault-key"
+VAULT_PASS_HELPER="/usr/libexec/potos/potos-vault-pass.sh"
+CONFIG_FILE="/etc/potos/config.yml"
 LOG="${LOGDIR}/ansible-pull.log"
 ANSIBLE_PLAYBOOK="${VENVDIR}/bin/ansible-playbook"
 export ANSIBLE_COLLECTIONS_PATH="${ANSIBLE_COLLECTIONS_PATH:-${SYSTEM_COLLECTIONS}}"
@@ -53,18 +51,18 @@ notify_users() {
 Help() {
     cat <<'HELPEOF'
 Pulls the latest potos specs and runs ansible against localhost
-to enforce {{ basics_client_name }} client specification.
+to enforce potos client specification.
 
 usage: potos-ansible-pull [-h|--help] [-v|--verbose] [-r|--runtype <runtype>]
 
   -h|--help     Print this help.
   -v|--verbose  Verbose mode (do not silence stdout/stderr).
-  -r|--runtype  Run type, one of: {% for r in basics_runtypes %}{{ r.runtype }}{% if not loop.last %}, {% endif %}{% endfor %}.
+  -r|--runtype  Run type, one of: daily, hourly.
 HELPEOF
 }
 
 VERBOSE=false
-RUN_TYPE="{{ (basics_runtypes | selectattr('on_calendar', 'defined') | list | first).runtype | default('daily') }}"
+RUN_TYPE="daily"
 
 while :; do
   case "${1:-}" in
@@ -72,10 +70,9 @@ while :; do
     -v|--verbose) VERBOSE=true; shift ;;
     -r|--runtype)
       case "${2:-}" in
-{% for r in basics_runtypes %}
-        {{ r.runtype }}) RUN_TYPE="{{ r.runtype }}" ;;
-{% endfor %}
-        *) die "Invalid run type '${2:-}'. Allowed: {% for r in basics_runtypes %}{{ r.runtype }}{% if not loop.last %}, {% endif %}{% endfor %}." ;;
+        daily) RUN_TYPE="daily" ;;
+        hourly) RUN_TYPE="hourly" ;;
+        *) die "Invalid run type '${2:-}'. Allowed: daily, hourly." ;;
       esac
       shift 2
       ;;
@@ -85,9 +82,7 @@ while :; do
   esac
 done
 
-{% if not basics_always_verbose %}
 if ! ${VERBOSE}; then exec >>"${LOG}" 2>&1; fi
-{% endif %}
 
 for tool in /usr/bin/awk /usr/bin/bc /usr/bin/date /usr/bin/env /usr/bin/flock \
             /usr/bin/git /usr/bin/id /usr/bin/mkdir \
@@ -104,7 +99,7 @@ exec {flockfd}<"${LOCK}"
 /usr/bin/flock -n "${flockfd}" || die "Other instance already running, aborting"
 
 # Check connectivity
-[ $( LANG=C /usr/bin/nmcli -g CONNECTIVITY g status ) == "full" ] || die "Insufficient connectivity, aborting"
+[ "$(LANG=C /usr/bin/nmcli -g CONNECTIVITY g status)" == "full" ] || die "Insufficient connectivity, aborting"
 
 mkdir -p "${WORKDIR}" "${LOGDIR}" || die "Failed to create work/log directories"
 
@@ -176,27 +171,24 @@ if [ "${RC}" -eq 0 ] && [ -f "${SPECS_DIR}/runtime.yml" ]; then
 fi
 
 if [ "${RC}" -ne 0 ]; then
-  MSG="Attention: {{ basics_client_name }} ansible run (${RUN_TYPE}) failed.
-{% for line in basics_on_error_additional_lines %}
-{{ line }}
-{% endfor %}"
+  MSG="Attention: potos ansible run (${RUN_TYPE}) failed.
+Contact your local administrator at admin@example.com
+"
   notify_users critical "${MSG}"
   /usr/bin/wall "${MSG}" || true
 fi
 
 exec {flockfd}<&-
 
-{% if basics_enable_reboot_reminder %}
 UPTIME_DATE=$(/usr/bin/uptime --since | /usr/bin/awk '{print $1}' | /usr/bin/tr -d '-')
 TODAY=$(/usr/bin/date +%Y%m%d)
-DAYS_DIFF=$(/usr/bin/echo "( $(/usr/bin/date -d ${TODAY} +%s) - $(/usr/bin/date -d ${UPTIME_DATE} +%s)) / (24*3600)" | /usr/bin/bc)
-if [ "${DAYS_DIFF}" -gt "{{ basics_reboot_reminder_days }}" ]; then
-  UPTIME_MSG="Your $(hostname) has been up for ${DAYS_DIFF} days (> {{ basics_reboot_reminder_days }}).
+DAYS_DIFF=$(/usr/bin/echo "( $(/usr/bin/date -d "${TODAY}" +%s) - $(/usr/bin/date -d "${UPTIME_DATE}" +%s)) / (24*3600)" | /usr/bin/bc)
+if [ "${DAYS_DIFF}" -gt "10" ]; then
+  UPTIME_MSG="Your $(hostname) has been up for ${DAYS_DIFF} days (> 10).
 Consider rebooting to keep the system secure."
   echo "${UPTIME_MSG}"
   notify_users normal "${UPTIME_MSG}"
   /usr/bin/wall "${UPTIME_MSG}" || true
 fi
-{% endif %}
 
 exit "${RC}"

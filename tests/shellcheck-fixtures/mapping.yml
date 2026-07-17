@@ -1,0 +1,7 @@
+---
+# Maps each jinja2 template to its shellcheck-jinja fixtures
+roles/uki/templates/usr/libexec/potos/bootchain-heal.sh.j2: bootchain-heal.sh.yml
+roles/basics/templates/usr/libexec/potos/potos-vault-pass.sh.j2: potos-vault-pass.sh.yml
+roles/basics/templates/usr/local/bin/potos-ansible-pull.sh.j2:
+  - potos-ansible-pull.sh.yml
+  - potos-ansible-pull.sh.verbose.yml

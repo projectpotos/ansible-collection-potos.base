@@ -60,3 +60,9 @@ repos:
         entry: uv run ansible-lint --offline
         language: system
         pass_filenames: false
+      - id: shellcheck-jinja
+        name: shellcheck-jinja
+        entry: uv run shellcheck-jinja --update
+        language: system
+        files: (\.sh\.j2$|^tests/shellcheck-fixtures/)
+        pass_filenames: false

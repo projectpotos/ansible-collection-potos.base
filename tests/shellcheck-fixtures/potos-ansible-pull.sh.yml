@@ -1,0 +1,26 @@
+---
+# shellcheck-jinja vars for roles/basics/templates/usr/local/bin/potos-ansible-pull.sh.j2
+ansible_managed: Ansible managed
+basics_client_name: potos
+basics_workdir: /var/lib/potos/ansible
+basics_virtenvdir: /var/lib/potos/virtenv
+basics_logdir: /var/log/potos
+basics_libexec_dir: /usr/libexec/potos
+basics_inventory: /var/lib/potos/ansible/potos_inventory
+basics_config_file: /etc/potos/config.yml
+basics_specs_clone_dir: /var/lib/potos/specs
+basics_specs_galaxy_dir: /var/lib/potos/galaxy
+basics_system_collections_dir: /usr/share/ansible/collections
+basics_ansible_vault_key_backend: file
+basics_ansible_vault_key_file: /etc/potos/ansible_vault_key
+basics_ansible_vault_key_name: ansible-vault-key
+basics_runtypes:
+  - runtype: daily
+    on_calendar: daily
+  - runtype: hourly
+    on_calendar: hourly
+basics_always_verbose: false
+basics_enable_reboot_reminder: true
+basics_reboot_reminder_days: 10
+basics_on_error_additional_lines:
+  - "Contact your local administrator at admin@example.com"

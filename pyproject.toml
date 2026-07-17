@@ -10,12 +10,7 @@ requires-python = ">=3.12"
 # The test group is exported to test-requirements.txt for CI by the
 # uv-export pre-commit hook. ansible-core is excluded from the export because
 # CI installs its own ansible-core per matrix entry.
-test = [
-    "pytest",
-    "pytest-ansible",
-    "pytest-cov",
-    "pytest-xdist",
-]
+test = ["pytest", "pytest-ansible", "pytest-cov", "pytest-xdist"]
 dev = [
     { include-group = "test" },
     "ansible>=14.1.0",
@@ -27,10 +22,14 @@ dev = [
     "ruff>=0.15.20",
     "pre-commit>=4.6.0",
     "antsibull-changelog~=0.35.0",
+    "shellcheck-jinja",
 ]
 
 [tool.uv]
 package = false
+
+[tool.uv.sources]
+shellcheck-jinja = { git = "https://github.com/projectpotos/shellcheck-jinja", tag = "v0.2.0" }
 
 [tool.ruff]
 line-length = 100
