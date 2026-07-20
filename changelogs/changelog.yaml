@@ -102,3 +102,35 @@ releases:
     fragments:
       - 70-base-self-update-and-galaxy-dir-move.yml
     release_date: "2026-07-10"
+  0.3.0:
+    changes:
+      breaking_changes:
+        - UKIs now use two different PCR signing keypairs. One for the initrd phase
+          only, and one for the fully booted system.
+      bugfixes:
+        - encrypting with ``tpm2_public_key`` and a ``with_key`` type without the public-key
+          property now fails instead of letting ``systemd-creds`` silently seal without
+          the signed PCR policy.
+        - yad validation error messages containing Pango markup characters (``&``, ``<``,
+          ``>``) no longer render as an empty error dialog; they are now escaped by
+          default (https://github.com/projectpotos/ansible-collection-potos.base/issues/40).
+      minor_changes:
+        - Added the ``uki`` role. The code that previously lived in a kickstart post
+          script is now a dedicated role that doesn't just configure UKI during the
+          setup but handles the full lifecycle of this component.
+        - The ``sslcacert`` option for the openbao repo is now optional.
+        - improved systemd_creds ``with_key`` options for PCR 11 signing keys.
+        - yad - new ``markup`` option on validations to explicitly render the ``error_message``
+          as Pango markup.
+    fragments:
+      - 40-yad-error-markup.yml
+      - 71-uki-role.yml
+      - 80-bao-repo.yml
+      - 90-uki-pcr-key-split.yml
+    modules:
+      - description:
+          Derive and persist the kernel cmdline embedded into the signed
+          UKI
+        name: uki_cmdline
+        namespace: ""
+    release_date: "2026-07-20"

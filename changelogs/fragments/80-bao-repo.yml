@@ -1,3 +1,0 @@
----
-minor_changes:
-  - The ``sslcacert`` option for the openbao repo is now optional.
