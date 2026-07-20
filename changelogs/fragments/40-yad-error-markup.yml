@@ -1,9 +1,0 @@
----
-bugfixes:
-  - yad validation error messages containing Pango markup characters
-    (``&``, ``<``, ``>``) no longer render as an empty error dialog; they
-    are now escaped by default
-    (https://github.com/projectpotos/ansible-collection-potos.base/issues/40).
-minor_changes:
-  - yad - new ``markup`` option on validations to explicitly render the
-    ``error_message`` as Pango markup.

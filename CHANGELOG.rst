@@ -4,6 +4,33 @@ Potos Base Collection Release Notes
 
 .. contents:: Topics
 
+v0.3.0
+======
+
+Minor Changes
+-------------
+
+- Added the ``uki`` role. The code that previously lived in a kickstart post script is now a dedicated role that doesn't just configure UKI during the setup but handles the full lifecycle of this component.
+- The ``sslcacert`` option for the openbao repo is now optional.
+- improved systemd_creds ``with_key`` options for PCR 11 signing keys.
+- yad - new ``markup`` option on validations to explicitly render the ``error_message`` as Pango markup.
+
+Breaking Changes / Porting Guide
+--------------------------------
+
+- UKIs now use two different PCR signing keypairs. One for the initrd phase only, and one for the fully booted system.
+
+Bugfixes
+--------
+
+- encrypting with ``tpm2_public_key`` and a ``with_key`` type without the public-key property now fails instead of letting ``systemd-creds`` silently seal without the signed PCR policy.
+- yad validation error messages containing Pango markup characters (``&``, ``<``, ``>``) no longer render as an empty error dialog; they are now escaped by default (https://github.com/projectpotos/ansible-collection-potos.base/issues/40).
+
+New Modules
+-----------
+
+- uki_cmdline - Derive and persist the kernel cmdline embedded into the signed UKI
+
 v0.2.0
 ======
 
