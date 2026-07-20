@@ -6,10 +6,12 @@
 #   secret                str   required. Plaintext to encrypt.
 #   name                  str   required. Credential name.
 #   path                  str   required. Output blob path.
-#   with_key              str   default auto. host | tpm2 | host+tpm2 | auto | ...
+#   with_key              str   default auto. host | tpm2 | host+tpm2 |
+#                               *-with-public-key | auto | ...
 #   tpm2_pcrs             list  default []. Extra literal PCRs to bind to.
 #   tpm2_public_key       str   optional. PEM for the signed PCR-11 policy
-#                               (e.g. /etc/secureboot/pcr.pub.pem).
+#                               (e.g. /etc/secureboot/pcr-system.pub.pem).
+#                               Requires a *-with-public-key with_key type
 #   tpm2_public_key_pcrs  list  default [11]. PCRs the signature covers.
 #   mode/owner/group            blob file permissions (default 0600 root:root).
 # outputs:

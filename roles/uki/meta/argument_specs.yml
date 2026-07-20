@@ -77,12 +77,18 @@ argument_specs:
       uki_mok_der:
         type: str
         default: /etc/secureboot/mok.der
-      uki_pcr_key:
+      uki_pcr_initrd_key:
         type: str
-        default: /etc/secureboot/pcr.key.pem
-      uki_pcr_pub:
+        default: /etc/secureboot/pcr-initrd.key.pem
+      uki_pcr_initrd_pub:
         type: str
-        default: /etc/secureboot/pcr.pub.pem
+        default: /etc/secureboot/pcr-initrd.pub.pem
+      uki_pcr_system_key:
+        type: str
+        default: /etc/secureboot/pcr-system.key.pem
+      uki_pcr_system_pub:
+        type: str
+        default: /etc/secureboot/pcr-system.pub.pem
       uki_sdboot_efi:
         type: str
         default: /usr/lib/systemd/boot/efi/systemd-bootx64.efi

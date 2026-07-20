@@ -17,8 +17,10 @@
         - /etc/secureboot/mok.key
         - /etc/secureboot/mok.crt
         - /etc/secureboot/mok.der
-        - /etc/secureboot/pcr.key.pem
-        - /etc/secureboot/pcr.pub.pem
+        - /etc/secureboot/pcr-initrd.key.pem
+        - /etc/secureboot/pcr-initrd.pub.pem
+        - /etc/secureboot/pcr-system.key.pem
+        - /etc/secureboot/pcr-system.pub.pem
         - /boot/efi/EFI/fedora/grubx64.efi
         - /boot/efi/EFI/BOOT/BOOTX64.EFI
         - /boot/efi/EFI/BOOT/grubx64.efi
@@ -42,7 +44,8 @@
         path: "{{ item }}"
       loop:
         - /etc/secureboot/mok.key
-        - /etc/secureboot/pcr.key.pem
+        - /etc/secureboot/pcr-initrd.key.pem
+        - /etc/secureboot/pcr-system.key.pem
       register: uki_keys
 
     - name: Key permissions are 0600

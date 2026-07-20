@@ -56,8 +56,10 @@ uki_cmdline_base: /var/lib/potos/uki-cmdline-base
 uki_mok_key: "{{ uki_sb_dir }}/mok.key"
 uki_mok_crt: "{{ uki_sb_dir }}/mok.crt"
 uki_mok_der: "{{ uki_sb_dir }}/mok.der"
-uki_pcr_key: "{{ uki_sb_dir }}/pcr.key.pem"
-uki_pcr_pub: "{{ uki_sb_dir }}/pcr.pub.pem"
+uki_pcr_initrd_key: "{{ uki_sb_dir }}/pcr-initrd.key.pem"
+uki_pcr_initrd_pub: "{{ uki_sb_dir }}/pcr-initrd.pub.pem"
+uki_pcr_system_key: "{{ uki_sb_dir }}/pcr-system.key.pem"
+uki_pcr_system_pub: "{{ uki_sb_dir }}/pcr-system.pub.pem"
 uki_sdboot_efi: /usr/lib/systemd/boot/efi/systemd-bootx64.efi
 uki_grubx64: "{{ uki_shim_dir }}/grubx64.efi"
 
