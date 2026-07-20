@@ -3,11 +3,17 @@
 SecureBootPrivateKey={{ uki_mok_key }}
 SecureBootCertificate={{ uki_mok_crt }}
 PCRBanks={{ uki_pcr_banks }}
+PCRPKey={{ uki_pcr_initrd_pub }}
 {% if uki_splash_available %}
 Splash={{ uki_splash }}
 {% endif %}
 
 [PCRSignature:initrd]
 Phases=enter-initrd
-PCRPrivateKey={{ uki_pcr_key }}
-PCRPublicKey={{ uki_pcr_pub }}
+PCRPrivateKey={{ uki_pcr_initrd_key }}
+PCRPublicKey={{ uki_pcr_initrd_pub }}
+
+[PCRSignature:system]
+Phases=enter-initrd:leave-initrd:sysinit:ready
+PCRPrivateKey={{ uki_pcr_system_key }}
+PCRPublicKey={{ uki_pcr_system_pub }}

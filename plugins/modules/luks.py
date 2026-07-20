@@ -105,7 +105,7 @@ EXAMPLES = r"""
       - "7"
       - "15:sha256=0000000000000000000000000000000000000000000000000000000000000000"
     tpm2_public_key_pcrs: ["11"]
-    tpm2_public_key: "/etc/secureboot/pcr.pub.pem"
+    tpm2_public_key: "/etc/secureboot/pcr-initrd.pub.pem"
 """
 
 RETURN = r"""

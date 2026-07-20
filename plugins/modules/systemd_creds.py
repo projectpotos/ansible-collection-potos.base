@@ -9,8 +9,13 @@
 Stores a secret as an encrypted credential, optionally bound to the TPM. The
 three bindings Potos cares about are:
   - host / TPM / both         -> --with-key=host|tpm2|host+tpm2
-  - PCR 11 signed policy      -> --tpm2-public-key=PEM --tpm2-public-key-pcrs=11
+  - PCR 11 signed policy      -> --with-key=*-with-public-key
+                                 --tpm2-public-key=PEM --tpm2-public-key-pcrs=11
   - extra literal PCRs        -> --tpm2-pcrs=7+14+...
+
+systemd-creds only honors --tpm2-public-key when the key type carries the
+public-key property (or in auto mode); with plain tpm2/host+tpm2 it silently
+seals WITHOUT the signed policy. The module refuses such combinations.
 """
 
 from __future__ import annotations
@@ -44,17 +49,35 @@ options:
     description: Where to write the encrypted blob (O(action=encrypt)).
     type: str
   with_key:
-    description: Encryption key selection.
+    description:
+      - Encryption key selection.
+      - The V(*-with-public-key) types additionally bind to the signed PCR
+        policy and require O(tpm2_public_key). The other explicit types make
+        systemd-creds silently ignore a public key, so combining them with
+        O(tpm2_public_key) fails.
     type: str
     default: auto
-    choices: ["host", "tpm2", "host+tpm2", "null",  "auto",  "auto-initrd"]
+    choices:
+      [
+        "host",
+        "tpm2",
+        "host+tpm2",
+        "tpm2-with-public-key",
+        "host+tpm2-with-public-key",
+        "tpm2-with-public-key+host",
+        "null",
+        "auto",
+        "auto-initrd",
+      ]
   tpm2_pcrs:
     description: Literal PCRs to bind to.
     type: list
     elements: str
     default: []
   tpm2_public_key:
-    description: PEM public key for the signed PCR policy.
+    description:
+      - PEM public key for the signed PCR policy.
+      - Requires a V(*-with-public-key) O(with_key) type (or V(auto)).
     type: str
   tpm2_public_key_pcrs:
     description: PCRs covered by the signed policy.
@@ -78,8 +101,8 @@ EXAMPLES = r"""
     name: secret
     secret: "super-secret"
     output_path: /etc/potos/secret.cred
-    with_key: host+tpm2
-    tpm2_public_key: /etc/secureboot/pcr.pub.pem
+    with_key: host+tpm2-with-public-key
+    tpm2_public_key: /etc/secureboot/pcr-system.pub.pem
   no_log: true
 """
 
@@ -100,11 +123,38 @@ from typing import Any
 from ansible.module_utils.basic import AnsibleModule
 
 
+PUBLIC_KEY_TYPES = frozenset(
+    ["tpm2-with-public-key", "host+tpm2-with-public-key", "tpm2-with-public-key+host"]
+)
+
+
 def format_pcr_list(pcrs: list[Any] | None) -> str:
     """Join PCR identifiers with '+'"""
     if not pcrs:
         return ""
     return "+".join(str(pcr) for pcr in pcrs)
+
+
+def validate_key_binding(with_key: str, public_key: str | None) -> str | None:
+    """Return an error message when with_key and tpm2_public_key conflict.
+
+    systemd-creds only loads --tpm2-public-key when the key type carries the
+    public-key property (or resolves it in auto mode); with the other explicit
+    types the option is silently ignored and the blob is sealed without the
+    signed PCR policy. A *-with-public-key type without an explicit key falls
+    back to the booted UKI's /run/systemd/tpm2-pcr-public-key.pem.
+    """
+    if public_key and with_key not in PUBLIC_KEY_TYPES and with_key != "auto":
+        return (
+            f"tpm2_public_key is silently ignored by systemd-creds with with_key={with_key}; "
+            "use one of " + ", ".join(sorted(PUBLIC_KEY_TYPES)) + " (or auto)"
+        )
+    if not public_key and with_key in PUBLIC_KEY_TYPES:
+        return (
+            f"with_key={with_key} requires tpm2_public_key; without it systemd-creds "
+            "falls back to the booted UKI's public key from /run"
+        )
+    return None
 
 
 def build_encrypt_argv(
@@ -175,6 +225,9 @@ def main() -> None:
                     "host",
                     "tpm2",
                     "host+tpm2",
+                    "tpm2-with-public-key",
+                    "host+tpm2-with-public-key",
+                    "tpm2-with-public-key+host",
                     "null",
                     "auto",
                     "auto-initrd",
@@ -197,6 +250,9 @@ def main() -> None:
 
     # action == encrypt
     if module.params["action"] == "encrypt":
+        error = validate_key_binding(module.params["with_key"], module.params["tpm2_public_key"])
+        if error:
+            module.fail_json(msg=error)
         argv = build_encrypt_argv(
             exe,
             name=module.params["name"],

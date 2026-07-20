@@ -158,6 +158,7 @@ Parameters
                 </td>
                 <td>
                         <div>PEM public key for the signed PCR policy.</div>
+                        <div>Requires a V(*-with-public-key) O(with_key) type (or V(auto)).</div>
                 </td>
             </tr>
             <tr>
@@ -206,6 +207,9 @@ Parameters
                                     <li>host</li>
                                     <li>tpm2</li>
                                     <li>host+tpm2</li>
+                                    <li>tpm2-with-public-key</li>
+                                    <li>host+tpm2-with-public-key</li>
+                                    <li>tpm2-with-public-key+host</li>
                                     <li>null</li>
                                     <li><div style="color: blue"><b>auto</b>&nbsp;&larr;</div></li>
                                     <li>auto-initrd</li>
@@ -213,6 +217,7 @@ Parameters
                 </td>
                 <td>
                         <div>Encryption key selection.</div>
+                        <div>The V(*-with-public-key) types additionally bind to the signed PCR policy and require O(tpm2_public_key). The other explicit types make systemd-creds silently ignore a public key, so combining them with O(tpm2_public_key) fails.</div>
                 </td>
             </tr>
     </table>
@@ -232,8 +237,8 @@ Examples
         name: secret
         secret: "super-secret"
         output_path: /etc/potos/secret.cred
-        with_key: host+tpm2
-        tpm2_public_key: /etc/secureboot/pcr.pub.pem
+        with_key: host+tpm2-with-public-key
+        tpm2_public_key: /etc/secureboot/pcr-system.pub.pem
       no_log: true
 
 

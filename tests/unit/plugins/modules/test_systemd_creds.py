@@ -67,9 +67,9 @@ def test_encrypt_argv_full_tpm_binding() -> None:
     argv = mod.build_encrypt_argv(
         "systemd-creds",
         name="luks",
-        with_key="host+tpm2",
+        with_key="host+tpm2-with-public-key",
         tpm2_pcrs=[7, 14],
-        public_key="/etc/secureboot/pcr.pub.pem",
+        public_key="/etc/secureboot/pcr-system.pub.pem",
         public_key_pcrs=[11],
         tpm2_device="auto",
         input_path="-",
@@ -79,14 +79,33 @@ def test_encrypt_argv_full_tpm_binding() -> None:
         "systemd-creds",
         "encrypt",
         "--name=luks",
-        "--with-key=host+tpm2",
+        "--with-key=host+tpm2-with-public-key",
         "--tpm2-pcrs=7+14",
-        "--tpm2-public-key=/etc/secureboot/pcr.pub.pem",
+        "--tpm2-public-key=/etc/secureboot/pcr-system.pub.pem",
         "--tpm2-public-key-pcrs=11",
         "--tpm2-device=auto",
         "-",
         "/etc/potos/luks.cred",
     ]
+
+
+def test_validate_rejects_public_key_with_non_pk_type() -> None:
+    for with_key in ("host", "tpm2", "host+tpm2", "null", "auto-initrd"):
+        error = mod.validate_key_binding(with_key, "/etc/secureboot/pcr-system.pub.pem")
+        assert error is not None and "silently ignored" in error
+
+
+def test_validate_rejects_pk_type_without_public_key() -> None:
+    for with_key in sorted(mod.PUBLIC_KEY_TYPES):
+        error = mod.validate_key_binding(with_key, None)
+        assert error is not None and "requires tpm2_public_key" in error
+
+
+def test_validate_accepts_valid_combinations() -> None:
+    assert mod.validate_key_binding("host+tpm2-with-public-key", "/etc/pk.pem") is None
+    assert mod.validate_key_binding("auto", "/etc/pk.pem") is None
+    assert mod.validate_key_binding("auto", None) is None
+    assert mod.validate_key_binding("host+tpm2", None) is None
 
 
 def test_decrypt_argv_minimal() -> None:
