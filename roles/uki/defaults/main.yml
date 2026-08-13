@@ -1,5 +1,5 @@
 ---
-# The four settings below default to null = "not provided". The caller is
+# The five settings below default to null = "not provided". The caller is
 # expected to set them: the kickstart %post passes them as extra vars
 # (rendered by the ISO builder), periodic runs provide them from the specs
 # repo inventory (group_vars/host_vars). Settings still unset fall back to
@@ -19,6 +19,9 @@ uki_mok_label: null
 # console. System config fallback: uki.mok_password. Built-in default:
 # "potos".
 uki_mok_password: null
+
+# Timeout in seconds for the MokManager enrollment prompt.
+uki_mok_timeout: null
 
 # Extra options appended to the embedded kernel cmdline.
 uki_cmdline_extra: null

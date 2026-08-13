@@ -17,6 +17,14 @@
   changed_when: true
   no_log: true
 
+- name: Set the MokManager prompt timeout
+  ansible.builtin.command:
+    argv: [mokutil, --timeout, "{{ uki_mok_timeout }}"]
+  when:
+    - uki_mok_timeout is not none
+    - "'already enrolled' not in uki_mok_test.stdout"
+  changed_when: true
+
 - name: Read the pending MOK requests
   ansible.builtin.command:
     argv: [mokutil, --list-new]
