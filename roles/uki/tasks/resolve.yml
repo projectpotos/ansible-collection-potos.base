@@ -9,6 +9,7 @@
   when: >-
     uki_enabled is none or uki_mok_password is none
     or uki_cmdline_extra is none or uki_mok_label is none
+    or uki_mok_timeout is none
 
 - name: Read the system config
   ansible.builtin.slurp:
@@ -26,6 +27,9 @@
     uki_mok_password: >-
       {{ uki_mok_password if uki_mok_password is not none
          else _uki.mok_password | default('potos') }}
+    uki_mok_timeout: >-
+      {{ uki_mok_timeout if uki_mok_timeout is not none
+         else _uki.mok_timeout | default(none) }}
     uki_cmdline_extra: >-
       {{ uki_cmdline_extra if uki_cmdline_extra is not none
          else _uki.cmdline_extra | default('') }}

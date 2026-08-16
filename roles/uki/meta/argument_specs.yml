@@ -21,7 +21,7 @@ argument_specs:
       uki_config_file:
         type: str
         default: /etc/potos/config.yml
-        description: System config file used as fallback for C(uki_enabled), C(uki_mok_password), C(uki_cmdline_extra) and C(uki_mok_label) when the caller leaves them unset.
+        description: System config file used as fallback for C(uki_enabled), C(uki_mok_password), C(uki_mok_timeout), C(uki_cmdline_extra) and C(uki_mok_label) when the caller leaves them unset.
       uki_mok_label:
         type: raw
         default: ~
@@ -30,6 +30,10 @@ argument_specs:
         type: raw
         default: ~
         description: Well-known password confirming the MOK enrollment at the MokManager console. When left unset (null) it falls back to C(uki.mok_password) from the system config, then to C(potos).
+      uki_mok_timeout:
+        type: raw
+        default: ~
+        description: Timeout in seconds for the MokManager enrollment prompt.
       uki_cmdline_extra:
         type: raw
         default: ~
