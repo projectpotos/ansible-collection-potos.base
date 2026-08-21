@@ -1,6 +1,12 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["github>projectpotos/renovate-config"],
+  "extends": [
+    "github>adfinis/renovate-config",
+    "github>adfinis/renovate-config:library",
+    "github>adfinis/renovate-config:quiet",
+    "github>adfinis/renovate-config:lockfile-maintenance",
+    "github>projectpotos/renovate-config:potos-deps"
+  ],
   "pip_requirements": {
     "managerFilePatterns": ["/(^|\\/)requirements\\.txt$/"]
   }
