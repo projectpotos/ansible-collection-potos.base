@@ -12,21 +12,21 @@ requires-python = ">=3.12"
 # CI installs its own ansible-core per matrix entry.
 test = [
     "pytest==9.1.1",
-    "pytest-ansible==26.6.0",
+    "pytest-ansible==26.10.0",
     "pytest-cov==7.1.0",
     "pytest-xdist==3.8.0",
 ]
 dev = [
     { include-group = "test" },
-    "ansible==14.2.0",
-    "ansible-lint==26.6.0",
+    "ansible==14.5.0",
+    "ansible-lint==26.10.1",
     "yamllint==1.38.0",
-    "molecule==26.6.0",
-    "molecule-plugins==26.7.8",
+    "molecule==26.10.0",
+    "molecule-plugins==26.10.12",
     "docker==7.2.0",
-    "ruff==0.15.22",
-    "pre-commit==4.6.0",
-    "antsibull-changelog==0.35.1",
+    "ruff==0.17.2",
+    "pre-commit==4.7.0",
+    "antsibull-changelog==0.36.0",
     "shellcheck-jinja",
 ]
 
