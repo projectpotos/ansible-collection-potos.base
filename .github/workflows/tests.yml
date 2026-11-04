@@ -18,7 +18,7 @@ jobs:
   ci:
     permissions:
       contents: read
-    uses: projectpotos/actions/.github/workflows/test-ansible-collection.yaml@31a073ace13fa1f689fe54cd71754f0ecba6dfb6 # v0.5.0
+    uses: projectpotos/actions/.github/workflows/test-ansible-collection.yaml@ffee1e989d6daec8d8a80c418023ba30bf40e739 # v0.6.1
     with:
       molecule-scenarios: >-
         ["basics", "firstboot", "firstboot_luks", "firstboot_openbao",
@@ -35,6 +35,6 @@ jobs:
     permissions: {}
     steps:
       - name: Verify no required job failed or was cancelled
-        uses: projectpotos/actions/all-green@31a073ace13fa1f689fe54cd71754f0ecba6dfb6 # v0.5.0
+        uses: projectpotos/actions/all-green@ffee1e989d6daec8d8a80c418023ba30bf40e739 # v0.6.1
         with:
           needs: ${{ toJSON(needs) }}
