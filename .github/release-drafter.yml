@@ -2,29 +2,47 @@
 name-template: v$RESOLVED_VERSION
 tag-template: v$RESOLVED_VERSION
 
+# Each category matches on the conventional-commit title or on the label
+# the autolabeler derives from it, so the check-pr action passes before the
+# labels exist and hand-labelled pull requests pass without a conventional title.
 categories:
   - title: Breaking Changes
-    labels: [major]
+    semver-increment: major
+    when:
+      - conventional:
+          breaking: true
+      - label: major
   - title: Features
-    labels: [feature, enhancement]
+    semver-increment: minor
+    when:
+      - conventional:
+          types: [feat, perf]
+      - labels: [feature, enhancement]
   - title: Bugfixes
-    labels: [bug]
+    semver-increment: patch
+    when:
+      - conventional:
+          type: fix
+      - label: bug
   - title: Deprecations
-    labels: [deprecated]
+    semver-increment: minor
+    when:
+      label: deprecated
   - title: Maintenance
-    labels: [refactoring]
+    semver-increment: patch
+    when:
+      - conventional:
+          types: [refactor, style]
+      - label: refactoring
+  - type: pre-exclude
+    when:
+      - conventional:
+          types: [chore, ci, test, build, docs]
+      - label: skip-changelog
+  - type: version-resolver
+    semver-increment: patch
 
-exclude-labels: [skip-changelog]
-
-version-resolver:
-  major:
-    labels: [major]
-  minor:
-    labels: [feature, enhancement, deprecated]
-  patch:
-    labels: [bug, refactoring]
-  default: patch
-
+sync-labels: true
 autolabeler:
   - label: major
     title: ['/^[a-z]+(\(.+\))?!:/']
@@ -36,8 +54,6 @@ autolabeler:
     title: ['/^(refactor|style)(\(.+\))?:/']
   - label: skip-changelog
     title: ['/^(chore|ci|test|build|docs)(\(.+\))?:/']
-  - label: skip-changelog
-    branch: ['/^chore-draft-release-/']
 
 change-template: "- $TITLE (#$NUMBER) @$AUTHOR"
 change-title-escapes: '\<*_&'

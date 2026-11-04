@@ -28,7 +28,8 @@ Add or bump a dev dependency with `uv add --dev <pkg>`
 Keep the scope of a pull request as small as possible and give it a
 [conventional commit](https://www.conventionalcommits.org/) title: the `PR labels` check
 labels the pull request from the title (`feat:` → enhancement, `fix:` → bug,
-`<type>!:` → major, `chore:`/`ci:`/`docs:` → skip-changelog) and fails without a label.
+`<type>!:` → major, `chore:`/`ci:`/`docs:` → skip-changelog) and fails unless the title or
+a label matches a release-drafter category.
 The label and the title become the entry in the generated changelog, so write the title
 for the changelog reader. Fragments in `changelogs/fragments/` are only for notes a title
 cannot carry, such as a `release_summary` or porting instructions under
