@@ -22,3 +22,23 @@ uv run molecule test -s firstboot
 ```
 
 Add or bump a dev dependency with `uv add --dev <pkg>`
+
+## Opening a pull request
+
+Keep the scope of a pull request as small as possible and give it a
+[conventional commit](https://www.conventionalcommits.org/) title: the `PR labels` check
+labels the pull request from the title (`feat:` → enhancement, `fix:` → bug,
+`<type>!:` → major, `chore:`/`ci:`/`docs:` → skip-changelog) and fails without a label.
+The label and the title become the entry in the generated changelog, so write the title
+for the changelog reader. Fragments in `changelogs/fragments/` are only for notes a title
+cannot carry, such as a `release_summary` or porting instructions under
+`breaking_changes`; they are added on top of the title entry.
+
+## Create a new release
+
+1. Manually trigger the `Draft release` workflow. It resolves the version from the merged
+   pull requests' labels, generates the changelog with antsibull-changelog and antsichaut,
+   bumps `galaxy.yml` and opens a "Changelog updated" pull request.
+2. Review and merge that pull request.
+3. Publish the draft in the release section. The `release.yml` workflow builds the
+   collection and publishes it to Ansible Galaxy.

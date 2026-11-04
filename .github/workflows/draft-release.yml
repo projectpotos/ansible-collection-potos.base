@@ -1,0 +1,17 @@
+---
+name: Draft release
+
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  draft-release:
+    permissions:
+      contents: read
+      id-token: write # declared by the called job for OpenBao; all writes use the app token
+    uses: projectpotos/actions/.github/workflows/release-draft-ansible-collection.yaml@31a073ace13fa1f689fe54cd71754f0ecba6dfb6 # v0.5.0
+    secrets:
+      APP_ID: ${{ secrets.APP_ID }}
+      APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
