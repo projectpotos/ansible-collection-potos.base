@@ -1,5 +1,4 @@
 #!/usr/bin/python
-# -*- coding: utf-8 -*-
 
 # Copyright: (c) 2026, Potos Project
 # GNU General Public License v3.0+ (see LICENSE or https://www.gnu.org/licenses/gpl-3.0.txt)
@@ -382,7 +381,7 @@ def _run_yad(
     # No AnsibleModule here on purpose: tests monkey-patch this helper, and the
     # dialog needs a custom environment (DISPLAY), which run_command lacks.
     # pylint: disable-next=ansible-bad-function
-    proc = subprocess.run(  # noqa: S603 - argv is constructed from validated params
+    proc = subprocess.run(
         argv,
         env=env,
         input=stdin_data,
@@ -590,7 +589,7 @@ def _validate(
             # Validation commands need the field values exposed via a custom
             # environment, which run_command cannot provide.
             # pylint: disable-next=ansible-bad-function
-            proc = subprocess.run(  # noqa: S602 - explicit shell requested by caller
+            proc = subprocess.run(
                 command,
                 shell=True,
                 input=stdin_value if stdin_value is not None else "",
@@ -856,7 +855,7 @@ def main() -> None:
         )
     except YadError as exc:
         module.fail_json(msg=str(exc))
-    except Exception as exc:  # pragma: no cover
+    except Exception as exc:  # noqa: BLE001  # pragma: no cover
         module.fail_json(
             msg=f"Unexpected error while running yad: {exc}",
             cmd=shlex.join([module.params["executable"]]),

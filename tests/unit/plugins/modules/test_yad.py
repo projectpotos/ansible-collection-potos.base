@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # Copyright: (c) 2026, Potos Project
 # GNU General Public License v3.0+ (see LICENSE or https://www.gnu.org/licenses/gpl-3.0.txt)
 
@@ -371,7 +369,7 @@ def test_build_argv_form() -> None:
 
 def test_build_argv_entry_with_hide() -> None:
     params = _base_params(dialog="entry", entry_text="default", entry_hide=True)
-    argv, labels, tail = yad._build_argv(params)
+    argv, labels, _tail = yad._build_argv(params)
     assert "--entry" in argv
     assert "--entry-text" in argv
     assert "--hide-text" in argv
