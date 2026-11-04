@@ -11,7 +11,7 @@ jobs:
     permissions:
       contents: read
       id-token: write # declared by the called job for OpenBao; all writes use the app token
-    uses: projectpotos/actions/.github/workflows/release-draft-ansible-collection.yaml@ffee1e989d6daec8d8a80c418023ba30bf40e739 # v0.6.1
+    uses: projectpotos/actions/.github/workflows/release-draft-ansible-collection.yaml@6155527f763b74eb868aab52fc2c253aa0a1f6f0 # v0.6.2
     secrets:
       APP_ID: ${{ secrets.APP_ID }}
       APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
