@@ -1,0 +1,50 @@
+---
+name-template: v$RESOLVED_VERSION
+tag-template: v$RESOLVED_VERSION
+
+categories:
+  - title: Breaking Changes
+    labels: [major]
+  - title: Features
+    labels: [feature, enhancement]
+  - title: Bugfixes
+    labels: [bug]
+  - title: Deprecations
+    labels: [deprecated]
+  - title: Maintenance
+    labels: [refactoring]
+
+exclude-labels: [skip-changelog]
+
+version-resolver:
+  major:
+    labels: [major]
+  minor:
+    labels: [feature, enhancement, deprecated]
+  patch:
+    labels: [bug, refactoring]
+  default: patch
+
+autolabeler:
+  - label: major
+    title: ['/^[a-z]+(\(.+\))?!:/']
+  - label: enhancement
+    title: ['/^(feat|perf)(\(.+\))?:/']
+  - label: bug
+    title: ['/^fix(\(.+\))?:/']
+  - label: refactoring
+    title: ['/^(refactor|style)(\(.+\))?:/']
+  - label: skip-changelog
+    title: ['/^(chore|ci|test|build|docs)(\(.+\))?:/']
+  - label: skip-changelog
+    branch: ['/^chore-draft-release-/']
+
+change-template: "- $TITLE (#$NUMBER) @$AUTHOR"
+change-title-escapes: '\<*_&'
+
+template: |
+  ## What's Changed
+
+  $CHANGES
+
+  **Full Changelog**: https://github.com/$OWNER/$REPOSITORY/compare/$PREVIOUS_TAG...v$RESOLVED_VERSION

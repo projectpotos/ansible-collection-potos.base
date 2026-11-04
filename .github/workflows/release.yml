@@ -1,12 +1,12 @@
 ---
 name: Release projectpotos.base
 
-# The version bump and changelog land on main through a release PR
-# (task release:create) before the tag is pushed (task release:tag);
-# the shared workflow only builds and publishes the collection.
+# The version bump and changelog land on main through the pull request opened
+# by draft-release.yml; publishing the draft release triggers this workflow,
+# which only builds and publishes the collection.
 on:
-  push:
-    tags: ["v*"]
+  release:
+    types: [published]
 
 permissions: {}
 
