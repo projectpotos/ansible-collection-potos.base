@@ -44,7 +44,8 @@ extend-select = ["I"]
 
 [tool.ruff.lint.per-file-ignores]
 # Ansible plugins must place imports below DOCUMENTATION/EXAMPLES/RETURN
-"plugins/modules/*.py" = ["E402"]
+# and modules carry a shebang without being executable
+"plugins/modules/*.py" = ["E402", "EXE001"]
 "plugins/filter/*.py" = ["E402"]
 
 [tool.ruff.lint.isort]

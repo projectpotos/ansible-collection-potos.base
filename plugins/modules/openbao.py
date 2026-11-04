@@ -1,5 +1,4 @@
 #!/usr/bin/python
-# -*- coding: utf-8 -*-
 
 # Copyright: (c) 2026, Potos Project
 # GNU General Public License v3.0+ (see LICENSE or https://www.gnu.org/licenses/gpl-3.0.txt)
@@ -278,7 +277,7 @@ def _spawn_detached(cmd: Any, env: dict[str, str], shell: bool = False) -> Popen
     # module.run_command blocks until exit; the browser/notify helpers must
     # keep running in their own session while the login continues.
     # pylint: disable-next=ansible-bad-function
-    return Popen(  # noqa: S603
+    return Popen(
         cmd,
         shell=shell,
         env=env,
@@ -319,7 +318,7 @@ def run_oidc_login(
     # The interactive login streams output that must be scanned live for the
     # verification URL; module.run_command cannot expose it before exit.
     # pylint: disable-next=ansible-bad-function
-    proc = Popen(  # noqa: S603
+    proc = Popen(
         argv,
         env=env,
         stdin=DEVNULL,
