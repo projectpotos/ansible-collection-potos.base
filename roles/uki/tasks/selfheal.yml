@@ -28,7 +28,9 @@
   loop:
     - potos-bootchain-heal.service
     - potos-bootchain-heal.path
-  notify: uki_systemd_reload
+  notify:
+    - uki_systemd_reload
+    - uki_path_restart
 
 - name: Install the SELinux policy for the bootloader watch
   ansible.builtin.copy:

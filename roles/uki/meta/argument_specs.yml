@@ -60,6 +60,11 @@ argument_specs:
       uki_shim_dir:
         type: str
         default: /boot/efi/EFI/fedora
+        description: Package-owned directory shim and MokManager are copied from.
+      uki_boot_dir:
+        type: str
+        default: /boot/efi/EFI/potos
+        description: Directory the firmware boots shim and the signed systemd-boot from.
       uki_fallback_dir:
         type: str
         default: /boot/efi/EFI/BOOT
@@ -98,7 +103,8 @@ argument_specs:
         default: /usr/lib/systemd/boot/efi/systemd-bootx64.efi
       uki_grubx64:
         type: str
-        default: /boot/efi/EFI/fedora/grubx64.efi
+        default: /boot/efi/EFI/potos/grubx64.efi
+        description: Signed systemd-boot name compiled into shim. The file must be named grubx64.efi because that's what the shim expects.
       uki_splash:
         type: str
         default: /usr/share/systemd/bootctl/splash-potos.bmp
@@ -117,7 +123,7 @@ argument_specs:
       uki_manage_nvram:
         type: bool
         default: true
-        description: Replace the direct systemd-boot NVRAM entry with a shim entry.
+        description: Create the NVRAM entry for the shim under C(uki_boot_dir), then drop the direct systemd-boot and legacy EFI/fedora shim entries on the same ESP.
       uki_enroll_mok:
         type: bool
         default: true

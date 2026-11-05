@@ -5,15 +5,16 @@
   gather_facts: true
 
   tasks:
-    # grub2's %posttrans copies the real GRUB over grubx64.efi on every
-    # install/upgrade; replay that with a reinstall while no file-watch-service is active.
+    # grub2's %posttrans copies the real GRUB over EFI/fedora/grubx64.efi and
+    # shim's re-adds EFI/BOOT/fbx64.efi on every install/upgrade; replay that
+    # with a reinstall while no file-watch-service is active.
     - name: Reinstall the bootloader packages like an update would
       ansible.builtin.command: # noqa: command-instead-of-module
         argv:
           [dnf, reinstall, -y, grub2-efi-x64, shim-x64, systemd-boot-unsigned]
       changed_when: true
 
-    - name: The reinstall must have clobbered grubx64.efi
+    - name: The reinstall must have clobbered EFI/fedora/grubx64.efi
       ansible.builtin.command: # noqa: command-instead-of-module
         argv:
           [
@@ -26,46 +27,90 @@
       changed_when: false
       failed_when: uki_clobbered.rc == 0
 
-    - name: Start the heal service (the boot-time re-check)
-      ansible.builtin.systemd:
-        name: potos-bootchain-heal.service
-        state: started
-
-    - name: The heal service restored the host signature
+    - name: The booted systemd-boot is untouched by the reinstall
       ansible.builtin.command: # noqa: command-instead-of-module
         argv:
           [
             sbverify,
             --cert,
             /etc/secureboot/mok.crt,
-            /boot/efi/EFI/fedora/grubx64.efi,
+            /boot/efi/EFI/potos/grubx64.efi,
           ]
       changed_when: false
+
+    - name: The reinstall must have re-added fbx64.efi
+      ansible.builtin.stat:
+        path: /boot/efi/EFI/BOOT/fbx64.efi
+      register: uki_fbx64
+      failed_when: not uki_fbx64.stat.exists
+
+    - name: Corrupt the booted MokManager copy
+      ansible.builtin.copy:
+        dest: /boot/efi/EFI/potos/mmx64.efi
+        content: not-an-efi-binary
+        mode: "0700"
+
+    - name: Start the heal service (the boot-time re-check)
+      ansible.builtin.systemd:
+        name: potos-bootchain-heal.service
+        state: started
+
+    - name: Checksum the packaged and booted boot chain files
+      ansible.builtin.stat:
+        path: "{{ item }}"
+        checksum_algorithm: sha256
+      loop:
+        - /boot/efi/EFI/fedora/shimx64.efi
+        - /boot/efi/EFI/potos/shimx64.efi
+        - /boot/efi/EFI/BOOT/BOOTX64.EFI
+        - /boot/efi/EFI/fedora/mmx64.efi
+        - /boot/efi/EFI/potos/mmx64.efi
+        - /boot/efi/EFI/BOOT/mmx64.efi
+        - /boot/efi/EFI/BOOT/fbx64.efi
+      register: uki_healed
+
+    - name: The heal service synced shim and MokManager and dropped fbx64.efi
+      ansible.builtin.assert:
+        that:
+          - uki_sums[0] == uki_sums[1]
+          - uki_sums[0] == uki_sums[2]
+          - uki_sums[3] == uki_sums[4]
+          - uki_sums[3] == uki_sums[5]
+          - not uki_healed.results[6].stat.exists
+      vars:
+        uki_sums: "{{ uki_healed.results | map(attribute='stat.checksum', default='') | list }}"
 
     - name: Start the path watch
       ansible.builtin.systemd:
         name: potos-bootchain-heal.path
         state: started
 
-    - name: Clobber again with the watch active
+    - name: Corrupt the booted MokManager copy again
+      ansible.builtin.copy:
+        dest: /boot/efi/EFI/potos/mmx64.efi
+        content: not-an-efi-binary
+        mode: "0700"
+
+    - name: Reinstall shim with the watch active
       ansible.builtin.command: # noqa: command-instead-of-module
-        argv: [dnf, reinstall, -y, grub2-efi-x64]
+        argv: [dnf, reinstall, -y, shim-x64]
       changed_when: true
 
-    - name: The path unit re-signs grubx64.efi on its own
+    - name: The path unit resyncs MokManager on its own
       ansible.builtin.command: # noqa: command-instead-of-module
         argv:
-          [
-            sbverify,
-            --cert,
-            /etc/secureboot/mok.crt,
-            /boot/efi/EFI/fedora/grubx64.efi,
-          ]
+          [cmp, /boot/efi/EFI/fedora/mmx64.efi, /boot/efi/EFI/potos/mmx64.efi]
       register: uki_path_heal
       retries: 15
       delay: 2
       until: uki_path_heal.rc == 0
       changed_when: false
+
+    - name: The path unit removed fbx64.efi again
+      ansible.builtin.stat:
+        path: /boot/efi/EFI/BOOT/fbx64.efi
+      register: uki_fbx64_again
+      failed_when: uki_fbx64_again.stat.exists
 
     - name: Run systemd-boot-update with the re-signing override
       ansible.builtin.systemd:
@@ -79,7 +124,7 @@
             sbverify,
             --cert,
             /etc/secureboot/mok.crt,
-            /boot/efi/EFI/fedora/grubx64.efi,
+            /boot/efi/EFI/potos/grubx64.efi,
           ]
       changed_when: false
 

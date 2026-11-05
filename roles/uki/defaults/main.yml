@@ -47,7 +47,10 @@ uki_packages:
 # On-disk layout
 uki_sb_dir: /etc/secureboot
 uki_esp_dir: /boot/efi
+# Package-owned shim directory; grub2-efi-x64 and shim-x64 rewrite it on update.
 uki_shim_dir: "{{ uki_esp_dir }}/EFI/fedora"
+# Directory the firmware boots from; no package writes here.
+uki_boot_dir: "{{ uki_esp_dir }}/EFI/potos"
 uki_fallback_dir: "{{ uki_esp_dir }}/EFI/BOOT"
 uki_image_dir: "{{ uki_esp_dir }}/EFI/Linux"
 uki_libexec_dir: /usr/libexec/potos
@@ -64,7 +67,7 @@ uki_pcr_initrd_pub: "{{ uki_sb_dir }}/pcr-initrd.pub.pem"
 uki_pcr_system_key: "{{ uki_sb_dir }}/pcr-system.key.pem"
 uki_pcr_system_pub: "{{ uki_sb_dir }}/pcr-system.pub.pem"
 uki_sdboot_efi: /usr/lib/systemd/boot/efi/systemd-bootx64.efi
-uki_grubx64: "{{ uki_shim_dir }}/grubx64.efi"
+uki_grubx64: "{{ uki_boot_dir }}/grubx64.efi"
 
 # Boot splash embedded into every signed UKI (skipped when the file is absent).
 uki_splash: /usr/share/systemd/bootctl/splash-potos.bmp
