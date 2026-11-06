@@ -1,6 +1,6 @@
 # {{ ansible_managed }}
 [Unit]
-Description=Restore host-signed systemd-boot at {{ uki_grubx64 }}
+Description=Sync the boot chain under {{ uki_boot_dir }}
 ConditionPathExists={{ uki_mok_key }}
 RequiresMountsFor={{ uki_esp_dir }}
 

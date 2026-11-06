@@ -11,3 +11,9 @@
   listen: uki_systemd_reload
   ansible.builtin.systemd:
     daemon_reload: true
+
+- name: Re-arm the boot chain watch
+  listen: uki_path_restart
+  ansible.builtin.command:
+    argv: [systemctl, try-restart, potos-bootchain-heal.path]
+  changed_when: true

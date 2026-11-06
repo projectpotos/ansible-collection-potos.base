@@ -5,24 +5,13 @@
   register: uki_efibootmgr
   changed_when: false
 
-# Drop the shimless sd-boot entry created by `bootloader --sdboot` so the
-# firmware boots shim instead.
-- name: Remove direct systemd-boot boot entries
-  ansible.builtin.command:
-    argv: [efibootmgr, --delete-bootnum, --bootnum, "{{ item }}"]
-  loop: >-
-    {{ uki_efibootmgr.stdout
-       | regex_findall('Boot([0-9A-Fa-f]{4})\*? .*[\\\\/]systemd-bootx64\.efi') }}
-  changed_when: true
-  failed_when: false
-
 - name: Resolve the ESP mount
   ansible.builtin.set_fact:
     uki_esp_device: >-
       {{ (ansible_facts.mounts | selectattr('mount', '==', uki_esp_dir)
           | map(attribute='device') | first | default('')) }}
 
-- name: Resolve the ESP disk and partition number
+- name: Resolve the ESP disk, partition number and partition UUID
   when: uki_esp_device | length > 0
   block:
     - name: Look up the ESP parent disk
@@ -38,6 +27,24 @@
       register: uki_esp_partition
       failed_when: false
 
+    - name: Look up the ESP partition UUID
+      ansible.builtin.command:
+        argv: [lsblk, -no, PARTUUID, "{{ uki_esp_device }}"]
+      register: uki_esp_partuuid
+      changed_when: false
+      failed_when: false
+
+# Only entries whose device path points at this ESP are managed.
+- name: Select the boot entries on this ESP
+  ansible.builtin.set_fact:
+    uki_shim_loader: '\{{ (uki_boot_dir | relpath(uki_esp_dir) ~ "/shimx64.efi") | replace("/", uki_backslash) }}'
+    uki_esp_entries: >-
+      {{ uki_efibootmgr.stdout_lines
+         | select('search', '(?i)HD\([0-9]+,GPT,' ~ uki_esp_partuuid.stdout | trim) | list }}
+  vars:
+    uki_backslash: '\'
+  when: uki_esp_partuuid.stdout | default('') | trim | length > 0
+
 - name: Create the shim boot entry
   ansible.builtin.command:
     argv:
@@ -50,13 +57,13 @@
       - --label
       - "{{ uki_mok_label }}"
       - --loader
-      - '\EFI\fedora\shimx64.efi'
+      - "{{ uki_shim_loader }}"
       - --unicode
   when:
-    - uki_esp_device | length > 0
+    - uki_esp_entries is defined
     - (uki_esp_pkname.stdout_lines | default([])) | length > 0
     - uki_esp_partition.content is defined
-    - uki_efibootmgr.stdout is not search('\\\\EFI\\\\fedora\\\\shimx64\.efi')
+    - uki_esp_entries | select('search', uki_shim_loader | regex_escape) | list | length == 0
   register: uki_shim_entry
   changed_when: uki_shim_entry.rc == 0
   failed_when: false
@@ -69,3 +76,19 @@
   when:
     - uki_shim_entry is not skipped
     - uki_shim_entry.rc | default(0) != 0
+
+# Drop the shimless sd-boot entry created by `bootloader --sdboot` and the
+# entry for the package-owned EFI/fedora shim, but only once this ESP has a
+# working entry for the managed shim.
+- name: Remove direct systemd-boot and EFI/fedora shim boot entries
+  ansible.builtin.command:
+    argv: [efibootmgr, --delete-bootnum, --bootnum, "{{ item }}"]
+  loop: >-
+    {{ uki_esp_entries
+       | select('search', '[\\\\/](?:systemd-bootx64|EFI[\\\\/]fedora[\\\\/]shimx64)\.efi')
+       | map('regex_search', '^Boot[0-9A-Fa-f]{4}') | map('regex_replace', '^Boot', '') | list }}
+  when:
+    - uki_esp_entries is defined
+    - uki_shim_entry is skipped or uki_shim_entry.rc == 0
+  changed_when: true
+  failed_when: false

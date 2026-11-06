@@ -1,6 +1,9 @@
 # {{ ansible_managed }}
 [Path]
-PathModified={{ uki_grubx64 }}
+PathChanged={{ uki_shim_dir }}
+{% if uki_install_fallback %}
+PathExists={{ uki_fallback_dir }}/fbx64.efi
+{% endif %}
 
 [Install]
 WantedBy=multi-user.target

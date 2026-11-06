@@ -1,8 +1,18 @@
 #!/usr/bin/env bash
 # {{ ansible_managed }}
-# Restore the host-signed systemd-boot at {{ uki_grubx64 }} if another package
-# replaced it.
+# Keep the boot chain under {{ uki_boot_dir }} in sync with the packaged shim
+# and the host-signed systemd-boot.
 set -euo pipefail
+
+refresh() {
+  if ! cmp -s "$1" "$2"; then
+    echo "updating $2 from $1"
+    cp -f "$1" "$2"
+  fi
+}
+
+refresh {{ uki_shim_dir }}/shimx64.efi {{ uki_boot_dir }}/shimx64.efi
+refresh {{ uki_shim_dir }}/mmx64.efi {{ uki_boot_dir }}/mmx64.efi
 
 if ! sbverify --cert {{ uki_mok_crt }} {{ uki_grubx64 }} >/dev/null 2>&1; then
   echo "{{ uki_grubx64 }} lost the host MOK signature; re-signing systemd-boot over it"
@@ -10,8 +20,8 @@ if ! sbverify --cert {{ uki_mok_crt }} {{ uki_grubx64 }} >/dev/null 2>&1; then
     --output {{ uki_grubx64 }} {{ uki_sdboot_efi }}
 fi
 {% if uki_install_fallback %}
-if ! sbverify --cert {{ uki_mok_crt }} {{ uki_fallback_dir }}/grubx64.efi >/dev/null 2>&1; then
-  echo "refreshing removable-media fallback copy of grubx64.efi"
-  cp -f {{ uki_grubx64 }} {{ uki_fallback_dir }}/grubx64.efi
-fi
+refresh {{ uki_boot_dir }}/shimx64.efi {{ uki_fallback_dir }}/BOOTX64.EFI
+refresh {{ uki_boot_dir }}/mmx64.efi {{ uki_fallback_dir }}/mmx64.efi
+refresh {{ uki_grubx64 }} {{ uki_fallback_dir }}/grubx64.efi
+rm -f {{ uki_fallback_dir }}/fbx64.efi
 {% endif %}

@@ -21,8 +21,11 @@
         - /etc/secureboot/pcr-initrd.pub.pem
         - /etc/secureboot/pcr-system.key.pem
         - /etc/secureboot/pcr-system.pub.pem
-        - /boot/efi/EFI/fedora/grubx64.efi
+        - /boot/efi/EFI/potos/shimx64.efi
+        - /boot/efi/EFI/potos/mmx64.efi
+        - /boot/efi/EFI/potos/grubx64.efi
         - /boot/efi/EFI/BOOT/BOOTX64.EFI
+        - /boot/efi/EFI/BOOT/mmx64.efi
         - /boot/efi/EFI/BOOT/grubx64.efi
         - /usr/libexec/potos/bootchain-heal.sh
         - /etc/systemd/system/potos-bootchain-heal.service
@@ -123,9 +126,15 @@
             sbverify,
             --cert,
             /etc/secureboot/mok.crt,
-            /boot/efi/EFI/fedora/grubx64.efi,
+            /boot/efi/EFI/potos/grubx64.efi,
           ]
       changed_when: false
+
+    - name: The shim fallback entry generator is gone
+      ansible.builtin.stat:
+        path: /boot/efi/EFI/BOOT/fbx64.efi
+      register: uki_fbx64_stat
+      failed_when: uki_fbx64_stat.stat.exists
 
     - name: The MOK certificate carries the client subject
       ansible.builtin.command: # noqa: command-instead-of-module
@@ -150,10 +159,10 @@
       changed_when: false
       failed_when: "'potos-bootchain-heal' not in uki_semodule.stdout"
 
-    - name: Clobber grubx64.efi like grub2 %posttrans would
+    - name: Replace the booted systemd-boot with an unsigned one
       ansible.builtin.copy:
         src: /usr/lib/systemd/boot/efi/systemd-bootx64.efi
-        dest: /boot/efi/EFI/fedora/grubx64.efi
+        dest: /boot/efi/EFI/potos/grubx64.efi
         remote_src: true
         mode: "0700"
 
@@ -166,6 +175,6 @@
       ansible.builtin.command: # noqa: command-instead-of-module
         argv: [sbverify, --cert, /etc/secureboot/mok.crt, "{{ item }}"]
       loop:
-        - /boot/efi/EFI/fedora/grubx64.efi
+        - /boot/efi/EFI/potos/grubx64.efi
         - /boot/efi/EFI/BOOT/grubx64.efi
       changed_when: false
