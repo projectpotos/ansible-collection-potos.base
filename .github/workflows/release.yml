@@ -18,6 +18,6 @@ jobs:
   release:
     permissions:
       contents: read
-    uses: projectpotos/actions/.github/workflows/release-ansible-collection.yaml@b239403e2a8ccd78f565b50e2db11177a01adde4 # v0.7.0
+    uses: projectpotos/actions/.github/workflows/release-ansible-collection.yaml@60001bf86fe665f84dfaedd1f6bc03073a11bea5 # v0.8.0
     secrets:
       ANSIBLE_GALAXY_API_KEY: ${{ secrets.ANSIBLE_GALAXY_API_KEY }}
