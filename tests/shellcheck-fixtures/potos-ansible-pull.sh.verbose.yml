@@ -4,6 +4,7 @@ ansible_managed: Ansible managed
 basics_client_name: potos
 basics_workdir: /var/lib/potos/ansible
 basics_virtenvdir: /var/lib/potos/virtenv
+basics_ansible_version: "2.22.0"
 basics_logdir: /var/log/potos
 basics_libexec_dir: /usr/libexec/potos
 basics_inventory: /var/lib/potos/ansible/potos_inventory
