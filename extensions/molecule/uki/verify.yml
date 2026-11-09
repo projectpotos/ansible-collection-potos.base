@@ -178,3 +178,30 @@
         - /boot/efi/EFI/potos/grubx64.efi
         - /boot/efi/EFI/BOOT/grubx64.efi
       changed_when: false
+
+    - name: Read the systemd version
+      ansible.builtin.command:
+        argv: [systemctl, --version]
+      register: uki_systemd_version_out
+      changed_when: false
+
+    - name: NvPCR measurement units are masked on systemd 262 and newer
+      when: (uki_systemd_version_out.stdout | regex_search('systemd (\\d+)', '\\1') | first | int) >= 262
+      block:
+        - name: Read the mask links
+          ansible.builtin.stat:
+            path: "/etc/systemd/system/{{ item }}"
+          loop:
+            - systemd-pcrproduct.service
+            - systemd-pcrlogin@.service
+          register: uki_mask_links
+
+        - name: Each unit is masked
+          ansible.builtin.assert:
+            that:
+              - item.stat.islnk
+              - item.stat.lnk_target == '/dev/null'
+            fail_msg: "{{ item.item }} is not masked"
+          loop: "{{ uki_mask_links.results }}"
+          loop_control:
+            label: "{{ item.item }}"

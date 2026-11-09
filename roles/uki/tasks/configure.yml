@@ -26,6 +26,16 @@
     mode: "0644"
   notify: uki_rebuild
 
+- name: Check whether dracut ships the renamed pcrextend module
+  ansible.builtin.stat:
+    path: /usr/lib/dracut/modules.d/11systemd-pcrextend
+  register: uki_pcrextend_module
+
+- name: Use the pcrextend module name on dracut 110 and newer
+  ansible.builtin.set_fact:
+    uki_dracut_modules: "{{ uki_dracut_modules | map('replace', 'systemd-pcrphase', 'systemd-pcrextend') | list }}"
+  when: uki_pcrextend_module.stat.exists
+
 - name: Enable the measured boot dracut modules
   ansible.builtin.template:
     src: etc/dracut.conf.d/measured-boot.conf.j2

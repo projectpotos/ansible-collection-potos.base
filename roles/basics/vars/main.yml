@@ -15,4 +15,4 @@ basics_packages:
   - yq
 
 # Pin ansible-core inside the virtualenv.
-basics_ansible_version: "2.20.6"
+basics_ansible_version: "2.22.0"

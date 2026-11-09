@@ -1,0 +1,5 @@
+---
+rules:
+  archived-uses:
+    ignore:
+      - .pre-commit-config.yaml:25

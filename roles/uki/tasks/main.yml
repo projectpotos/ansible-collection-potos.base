@@ -20,6 +20,9 @@
     - name: Derive the embedded kernel cmdline
       ansible.builtin.import_tasks: cmdline.yml
 
+    - name: Mask the NvPCR measurement units on systemd 262 and newer
+      ansible.builtin.import_tasks: nvpcr.yml
+
     - name: Disable the dracut rescue image
       ansible.builtin.import_tasks: rescue.yml
       when: uki_disable_rescue | bool

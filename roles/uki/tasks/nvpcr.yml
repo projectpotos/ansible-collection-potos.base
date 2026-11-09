@@ -1,0 +1,13 @@
+---
+- name: Read the systemd version
+  ansible.builtin.command:
+    argv: [systemctl, --version]
+  register: uki_systemd_version_out
+  changed_when: false
+
+- name: Mask the NvPCR measurement units on systemd 262 and newer
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    masked: true
+  loop: "{{ uki_nvpcr_masked_units }}"
+  when: (uki_systemd_version_out.stdout | regex_search('systemd (\\d+)', '\\1') | first | int) >= 262

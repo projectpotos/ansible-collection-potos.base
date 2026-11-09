@@ -2,3 +2,4 @@
 # Test-only collection dependencies
 collections:
   - name: community.hashi_vault
+  - name: containers.podman

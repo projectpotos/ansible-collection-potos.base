@@ -78,6 +78,12 @@ uki_dracut_modules:
   - tpm2-tss
   - systemd-cryptsetup
 
+# NvPCR measurement units systemd 262 added. Fedora's dracut cannot initialise
+# NvPCRs from the initrd yet, so they only fail; nothing in potos consumes them.
+uki_nvpcr_masked_units:
+  - systemd-pcrproduct.service
+  - systemd-pcrlogin@.service
+
 # Drop the unmeasured dracut rescue entry.
 uki_disable_rescue: true
 
