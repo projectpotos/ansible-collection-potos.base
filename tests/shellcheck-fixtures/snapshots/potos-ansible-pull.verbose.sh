@@ -83,7 +83,7 @@ done
 
 for tool in /usr/bin/awk /usr/bin/bc /usr/bin/date /usr/bin/env /usr/bin/flock \
             /usr/bin/git /usr/bin/id /usr/bin/mkdir \
-            /usr/bin/notify-send /usr/bin/sed /usr/sbin/runuser /usr/bin/tail \
+            /usr/bin/notify-send /usr/bin/python3 /usr/bin/sed /usr/sbin/runuser /usr/bin/tail \
             /usr/bin/touch /usr/bin/tr /usr/bin/uptime /usr/bin/wall \
             /usr/bin/nmcli /usr/bin/yq; do
   [ -x "${tool}" ] || die "Required tool '${tool}' not available!"
@@ -99,6 +99,14 @@ exec {flockfd}<"${LOCK}"
 [ "$(LANG=C /usr/bin/nmcli -g CONNECTIVITY g status)" == "full" ] || die "Insufficient connectivity, aborting"
 
 mkdir -p "${WORKDIR}" "${LOGDIR}" || die "Failed to create work/log directories"
+
+# A system Python minor bump (release upgrade) orphans the venv's site-packages.
+if ! "${VENVDIR}/bin/python" -c 'import ansible' >/dev/null 2>&1; then
+  echo "=== potos: rebuilding ansible venv ===" >&2
+  /usr/bin/python3 -m venv --clear "${VENVDIR}" || die "Failed to create the ansible venv"
+  "${VENVDIR}/bin/python" -m pip install --quiet --disable-pip-version-check "ansible-core==2.22.0" \
+    || die "Failed to install ansible-core into the venv"
+fi
 
 # ansible-vault
 if [ -f "${CONFIG_FILE}" ]; then
