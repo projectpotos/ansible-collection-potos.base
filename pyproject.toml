@@ -2,7 +2,7 @@
 name = "projectpotos-base-dev"
 version = "0.0.0"
 description = "Development and test environment for the projectpotos.base Ansible collection."
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 
 [dependency-groups]
 # Local development and test tooling, managed with uv (`uv sync`).
@@ -18,7 +18,7 @@ test = [
 ]
 dev = [
     { include-group = "test" },
-    "ansible==14.5.0",
+    "ansible-core==2.22.0",
     "ansible-lint==26.10.1",
     "yamllint==1.38.0",
     "molecule==26.10.0",

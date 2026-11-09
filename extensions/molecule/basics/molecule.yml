@@ -1,13 +1,15 @@
 ---
 dependency:
   name: galaxy
+  options:
+    requirements-file: ${MOLECULE_PROJECT_DIRECTORY}/tests/requirements.yml
 
 driver:
   name: podman
 
 platforms:
   - name: potos-basics
-    image: "ghcr.io/projectpotos/docker-${MOLECULE_DISTRO:-fedora44}-ansible:latest"
+    image: "ghcr.io/projectpotos/docker-${MOLECULE_DISTRO:-fedora45}-ansible:latest"
     pre_build_image: true
     override_command: false
     privileged: false

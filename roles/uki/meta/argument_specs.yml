@@ -116,6 +116,11 @@ argument_specs:
         type: list
         elements: str
         default: [systemd-pcrphase, tpm2-tss, systemd-cryptsetup]
+      uki_nvpcr_masked_units:
+        type: list
+        elements: str
+        description: NvPCR measurement units to mask on systemd 262 and newer.
+        default: [systemd-pcrproduct.service, systemd-pcrlogin@.service]
       uki_disable_rescue:
         type: bool
         default: true
