@@ -130,11 +130,14 @@
           ]
       changed_when: false
 
-    - name: The shim fallback entry generator is gone
+    - name: The shim fallback entry generator and the shimless systemd-boot are gone
       ansible.builtin.stat:
-        path: /boot/efi/EFI/BOOT/fbx64.efi
-      register: uki_fbx64_stat
-      failed_when: uki_fbx64_stat.stat.exists
+        path: "{{ item }}"
+      loop:
+        - /boot/efi/EFI/BOOT/fbx64.efi
+        - /boot/efi/EFI/systemd
+      register: uki_removed
+      failed_when: uki_removed.stat.exists
 
     - name: The MOK certificate carries the client subject
       ansible.builtin.command: # noqa: command-instead-of-module

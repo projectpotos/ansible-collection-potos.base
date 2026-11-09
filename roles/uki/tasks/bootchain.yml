@@ -10,6 +10,11 @@
     - "{{ uki_shim_dir }}"
     - "{{ uki_boot_dir }}"
 
+- name: Remove the shimless systemd-boot directory
+  ansible.builtin.file:
+    path: "{{ uki_esp_dir }}/EFI/systemd"
+    state: absent
+
 - name: Copy shim and MokManager into the boot chain directory
   ansible.builtin.copy:
     src: "{{ uki_shim_dir }}/{{ item }}"

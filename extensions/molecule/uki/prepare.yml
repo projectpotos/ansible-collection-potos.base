@@ -17,8 +17,17 @@
 
     - name: Create the fake ESP layout
       ansible.builtin.file:
-        path: /boot/efi/loader/entries
+        path: "{{ item }}"
         state: directory
+        mode: "0700"
+      loop:
+        - /boot/efi/loader/entries
+        - /boot/efi/EFI/systemd
+
+    - name: Place a shimless systemd-boot stand-in as bootctl install would
+      ansible.builtin.copy:
+        dest: /boot/efi/EFI/systemd/systemd-bootx64.efi
+        content: systemd-boot fixture
         mode: "0700"
 
     - name: Write a BLS entry as anaconda would leave it
