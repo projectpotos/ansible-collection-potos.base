@@ -46,3 +46,47 @@
         ANSIBLE_COLLECTIONS_PATH: "{{ specs_galaxy }}/collections:{{ system_collections }}"
         ANSIBLE_ROLES_PATH: "{{ specs_galaxy }}/roles"
       changed_when: true
+
+    # A failing stage 1 must still self-update projectpotos.base, otherwise a
+    # broken specs repo locks clients out of the fix.
+    - name: Reinstall the collection under test
+      ansible.builtin.command:
+        argv:
+          - ansible-galaxy
+          - collection
+          - install
+          - /tmp/potos-base.tar.gz
+          - --no-deps
+          - -p
+          - "{{ system_collections }}"
+          - --force
+      changed_when: true
+
+    - name: Remove the self-update canary again
+      ansible.builtin.file:
+        path: "{{ system_collections }}/ansible_collections/projectpotos/base/README.md"
+        state: absent
+
+    - name: Break the specs repo by shadowing projectpotos.base
+      ansible.builtin.shell:
+        cmd: |
+          set -eu
+          cd /opt/potos-specs-src
+          printf 'collections:\n  - name: projectpotos.base\n' >> requirements.yml
+          git -c user.email=beast@xaviers-school.edu -c user.name=Beast commit -am "shadow base"
+      changed_when: true
+
+    - name: Periodic stage 1 (prepare) fails on the broken specs repo
+      ansible.builtin.command:
+        argv:
+          - "{{ box_venv }}/bin/ansible-playbook"
+          - -i
+          - "{{ box_inventory }}"
+          - -e
+          - potos_runtype=daily
+          - projectpotos.base.prepare
+      environment:
+        ANSIBLE_COLLECTIONS_PATH: "{{ system_collections }}"
+      register: potos_broken_prepare
+      changed_when: true
+      failed_when: potos_broken_prepare.rc == 0
