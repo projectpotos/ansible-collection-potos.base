@@ -669,11 +669,8 @@ def _build_argv(params: dict[str, Any]) -> tuple[list[str], list[str], list[str]
         )
         argv += list_args
 
-    elif dialog == "message":
-        # No input widget - just show text. Default to --info if the user
-        # did not supply custom buttons.
-        if not params.get("buttons"):
-            argv += ["--button", DEFAULT_OK_LABEL]
+    if dialog == "message" and not params.get("buttons"):
+        argv += ["--button", DEFAULT_OK_LABEL]
 
     if params.get("extra_args"):
         argv += list(params["extra_args"])
